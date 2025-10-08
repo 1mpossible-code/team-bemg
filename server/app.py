@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_restx import Api
 from flask_cors import CORS
 
@@ -27,6 +27,10 @@ def create_app():
             return {"status": "ok"}
         except Exception as exc:
             return {"status": "error", "detail": str(exc)}, 500
+        
+    @app.route("/ui/states")
+    def ui_states():
+        return send_from_directory("static", "states.html")
 
     return app
 

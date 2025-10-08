@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>States</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+      form, ul { margin-top: 12px; }
+      input { padding: 6px; }
+      button { padding: 6px 10px; }
+      li { margin: 4px 0; }
+      .error { color: #b00020; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>States</h1>
+    <!--
+      About this page
+      - This is a minimal UI that calls the API endpoint GET /states?country=<CODE>.
+      - It expects a JSON array of state objects with fields:
+        code (str), name (str), country_code (str), capital (str?), population (int?), area_km2 (int?).
+      - Until the /states endpoint is implemented on the server, requests will return HTTP 404.
+      - Once /states is live, entering a country code (e.g., US) will list matching states.
+    -->
+    <form id="form">
+      <label>
+        Country code:
+        <input id="country" value="US" maxlength="3" />
+      </label>
+      <button type="submit">Load States</button>
+    </form>
+
+    <div class="error" id="error"></div>
+    <ul id="list"></ul>
+
+    <script>
+      const form = document.getElementById('form');
+      const country = document.getElementById('country');
+      const list = document.getElementById('list');
+      const error = document.getElementById('error');
+
+      async function loadStates(cc) {
+        error.textContent = '';
+        list.innerHTML = '';
+        try {
+          // Call the expected API endpoint. When the backend is not yet implemented,
+          // this will return HTTP 404 and the catch block will show an error.
+          const resp = await fetch(`/states?country=${encodeURIComponent(cc)}`);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const data = await resp.json();
+          // Expected shape: an array of state documents.
+          // Example: [{ code: 'NY', name: 'New York', country_code: 'US' }]
+          if (!Array.isArray(data)) throw new Error('Unexpected response');
+          for (const s of data) {
+            const li = document.createElement('li');
+            li.textContent = `${s.code} — ${s.name} (${s.country_code})`;
+            list.appendChild(li);
+          }
+          if (data.length === 0) list.innerHTML = '<li>No states found.</li>';
+        } catch (e) {
+          error.textContent = `Failed to load states: ${e.message}`;
+        }
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        loadStates(country.value.trim());
+      });
+
+      loadStates(country.value.trim());
+    </script>
+  </body>
+</html>
