@@ -93,6 +93,21 @@ def read(collection, db=SE_DB, no_id=True) -> list:
     return ret
 
 
+def read_filtered(collection, filt: dict, db=SE_DB, no_id=True) -> list:
+    """
+    Returns a filtered list from the db using the provided filt dict.
+    """
+    ret = []
+    for doc in client[db][collection].find(filt):
+        if no_id:
+            if MONGO_ID in doc:
+                del doc[MONGO_ID]
+        else:
+            convert_mongo_id(doc)
+        ret.append(doc)
+    return ret
+
+
 def read_dict(collection, key, db=SE_DB, no_id=True) -> dict:
     recs = read(collection, db=db, no_id=no_id)
     recs_as_dict = {}
