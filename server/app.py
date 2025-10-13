@@ -10,7 +10,7 @@ def create_app():
     client = connect_db()
 
     CORS(app)
-    api = Api(
+    Api(
         app, title="Geo API",
         version="1.0.0",
         description="CRUD for countries, states, cities")
@@ -22,12 +22,12 @@ def create_app():
     @app.route("/readyz")
     def readyz():
         try:
-            # Cheap connectivity check; does not require auth if server allows ping
+            # Cheap connectivity check; does not require auth
             client.admin.command("ping")
             return {"status": "ok"}
         except Exception as exc:
             return {"status": "error", "detail": str(exc)}, 500
-        
+
     @app.route("/ui/states")
     def ui_states():
         return send_from_directory("static", "states.html")
@@ -36,4 +36,3 @@ def create_app():
 
 
 app = create_app()
-
