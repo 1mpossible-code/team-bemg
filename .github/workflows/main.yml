@@ -1,19 +1,19 @@
-# This is a workflow to test and deploy our demo app.
+# This is a workflow to test and deploy our geographic database API.
 
-name: Demo CI/CD
+name: Geographic API CI/CD
 
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ master ]
+    branches: [ master, dev ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, dev ]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 env:
-  PYTHONPATH: /home/runner/work/demo-repo4/demo-repo4/
+  PYTHONPATH: /home/runner/work/team-bemg/team-bemg/
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -25,6 +25,9 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
       - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
@@ -32,12 +35,10 @@ jobs:
           python-version: '3.13'
           # Optional - x64 or x86 architecture, defaults to x64
           architecture: 'x64'
+      
       # You can test your matrix by printing the current Python version
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
-
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
 
       - name: Install MongoDB in a Docker container.
         uses: supercharge/mongodb-github-action@1.8.0
