@@ -42,6 +42,62 @@ class TestCountries:
             mock_read_one.assert_called_once_with(countries.COUNTRIES_COLLECT, {countries.COUNTRY_NAME: 'United States'})
             assert result == countries.TEST_COUNTRY
 
+    def test_get_countries_by_continent(self):
+        """Test getting countries by continent."""
+        with patch('data.db_connect.client') as mock_client:
+            mock_collection = mock_client.__getitem__().__getitem__()
+            mock_collection.find.return_value = [countries.TEST_COUNTRY]
+            result = countries.get_countries_by_continent('North America')
+            mock_collection.find.assert_called_once_with({countries.CONTINENT: 'North America'})
+            assert result == [countries.TEST_COUNTRY]
+
+    def test_get_countries_by_continent_empty(self):
+        """Test getting countries by continent returns empty list when none found."""
+        with patch('data.db_connect.client') as mock_client:
+            mock_collection = mock_client.__getitem__().__getitem__()
+            mock_collection.find.return_value = []
+            result = countries.get_countries_by_continent('Antarctica')
+            mock_collection.find.assert_called_once_with({countries.CONTINENT: 'Antarctica'})
+            assert result == []
+
+    def test_get_countries_by_population_range_min_only(self):
+        """Test filtering by min population only builds $gte query."""
+        with patch('data.db_connect.client') as mock_client:
+            mock_collection = mock_client.__getitem__().__getitem__()
+            mock_collection.find.return_value = [countries.TEST_COUNTRY]
+            result = countries.get_countries_by_population_range(min_pop=100000000)
+            mock_collection.find.assert_called_once_with({countries.POPULATION: {'$gte': 100000000}})
+            assert result == [countries.TEST_COUNTRY]
+
+    def test_get_countries_by_population_range_max_only(self):
+        """Test filtering by max population only builds $lte query."""
+        with patch('data.db_connect.client') as mock_client:
+            mock_collection = mock_client.__getitem__().__getitem__()
+            mock_collection.find.return_value = [countries.TEST_COUNTRY]
+            result = countries.get_countries_by_population_range(max_pop=500000000)
+            mock_collection.find.assert_called_once_with({countries.POPULATION: {'$lte': 500000000}})
+            assert result == [countries.TEST_COUNTRY]
+
+    def test_get_countries_by_population_range(self):
+        """Test getting countries by population range."""
+        with patch('data.db_connect.client') as mock_client:
+            mock_collection = mock_client.__getitem__().__getitem__()
+            mock_collection.find.return_value = [countries.TEST_COUNTRY]
+            result = countries.get_countries_by_population_range(min_pop=100000000, max_pop=500000000)
+            mock_collection.find.assert_called_once_with({
+                countries.POPULATION: {'$gte': 100000000, '$lte': 500000000}
+            })
+            assert result == [countries.TEST_COUNTRY]
+
+    def test_get_countries_by_population_range_no_filters(self):
+        """Test getting countries by population range with no filters."""
+        with patch('data.db_connect.client') as mock_client:
+            mock_collection = mock_client.__getitem__().__getitem__()
+            mock_collection.find.return_value = [countries.TEST_COUNTRY]
+            result = countries.get_countries_by_population_range()
+            mock_collection.find.assert_called_once_with({})
+            assert result == [countries.TEST_COUNTRY]
+
     def test_add_country_success(self):
         """Test successfully adding a new country."""
         with patch('data.countries.get_country_by_code') as mock_get, \
@@ -61,6 +117,18 @@ class TestCountries:
         
         with pytest.raises(ValueError, match="Missing required field"):
             countries.add_country(incomplete_country)
+
+    def test_add_country_invalid_continent(self):
+        """Test adding a country with invalid continent."""
+        invalid_country = {
+            countries.COUNTRY_NAME: 'Test Country',
+            countries.COUNTRY_CODE: 'TC',
+            countries.CONTINENT: 'Atlantis',  # Invalid continent
+            countries.CAPITAL: 'Test City'
+        }
+        
+        with pytest.raises(ValueError, match="Invalid continent"):
+            countries.add_country(invalid_country)
 
     def test_add_country_already_exists(self):
         """Test adding a country that already exists."""

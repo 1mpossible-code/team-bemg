@@ -14,6 +14,25 @@ POPULATION = 'population'
 AREA_KM2 = 'area_km2'
 CAPITAL = 'capital'
 
+# Continent constants
+AFRICA = 'Africa'
+ANTARCTICA = 'Antarctica'
+ASIA = 'Asia'
+EUROPE = 'Europe'
+NORTH_AMERICA = 'North America'
+OCEANIA = 'Oceania'
+SOUTH_AMERICA = 'South America'
+
+VALID_CONTINENTS = [
+    AFRICA,
+    ANTARCTICA,
+    ASIA,
+    EUROPE,
+    NORTH_AMERICA,
+    OCEANIA,
+    SOUTH_AMERICA
+]
+
 REQUIRED_FIELDS = [COUNTRY_NAME, COUNTRY_CODE, CONTINENT, CAPITAL]
 OPTIONAL_FIELDS = [POPULATION, AREA_KM2]
 
@@ -55,6 +74,29 @@ def get_country_by_name(name: str) -> dict:
     return dbc.read_one(COUNTRIES_COLLECT, {COUNTRY_NAME: name})
 
 
+def get_countries_by_continent(continent: str) -> list:
+    """
+    Returns a list of all countries within a specific continent
+    """
+    return dbc.read_filtered(COUNTRIES_COLLECT, {CONTINENT: continent})
+
+
+def get_countries_by_population_range(min_pop: int = None, max_pop: int = None) -> list:
+    """
+    Returns a list of all countries filtered by population range
+    """
+    query = {}
+    if min_pop is not None or max_pop is not None:
+        pop_query = {}
+        if min_pop is not None:
+            pop_query["$gte"] = min_pop
+        if max_pop is not None:
+            pop_query["$lte"] = max_pop
+        query[POPULATION] = pop_query
+
+    return dbc.read_filtered(COUNTRIES_COLLECT, query)
+
+
 def add_country(country_data: dict) -> bool:
     """
     Add a new country to the database
@@ -63,6 +105,10 @@ def add_country(country_data: dict) -> bool:
     for field in REQUIRED_FIELDS:
         if field not in country_data:
             raise ValueError(f"Missing required field: {field}")
+    
+    # Validate continent
+    if country_data[CONTINENT] not in VALID_CONTINENTS:
+        raise ValueError(f"Invalid continent: {country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}")
     
     if get_country_by_code(country_data[COUNTRY_CODE]):
         raise ValueError(f"Country with code {country_data[COUNTRY_CODE]} already exists")
