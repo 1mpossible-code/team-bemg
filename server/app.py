@@ -10,10 +10,16 @@ def create_app():
     client = connect_db()
 
     CORS(app)
-    Api(
-        app, title="Geo API",
+    api = Api(
+        app, title="Geographic Database API",
         version="1.0.0",
         description="CRUD for countries, states, cities")
+
+    # Register API namespaces
+    from server.countries_endpoints import countries_ns
+    from server.endpoints import general_ns
+    api.add_namespace(countries_ns, path='/countries')
+    api.add_namespace(general_ns, path='/')
 
     @app.route("/healthz")
     def healthz():

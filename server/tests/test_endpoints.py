@@ -12,8 +12,9 @@ from unittest.mock import patch
 import pytest
 
 import server.endpoints as ep
+from server.app import app
 
-TEST_CLIENT = ep.app.test_client()
+TEST_CLIENT = app.test_client()
 
 
 def test_hello():
