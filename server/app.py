@@ -1,25 +1,29 @@
 from flask import Flask, send_from_directory
-from flask_restx import Api
 from flask_cors import CORS
+from flask_restx import Api
 
-from data.db_connect import connect_db
+from data import db_connect
 
 
 def create_app():
     app = Flask(__name__)
-    client = connect_db()
+    client = db_connect.connect_db()
 
     CORS(app)
     api = Api(
-        app, title="Geographic Database API",
+        app,
+        title="Geographic Database API",
         version="1.0.0",
-        description="CRUD for countries, states, cities")
+        description="CRUD for countries, states, cities",
+    )
 
     # Register API namespaces
     from server.countries_endpoints import countries_ns
-    from server.endpoints import general_ns
-    api.add_namespace(countries_ns, path='/countries')
-    api.add_namespace(general_ns, path='/')
+
+    # from server.endpoints import general_ns
+
+    api.add_namespace(countries_ns, path="/countries")
+    # api.add_namespace(general_ns, path="/")
 
     @app.route("/healthz")
     def healthz():
