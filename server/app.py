@@ -19,11 +19,12 @@ def create_app():
 
     # Register API namespaces
     from server.countries_endpoints import countries_ns
-
-    # from server.endpoints import general_ns
+    from server.endpoints import general_ns
+    from server.endpoints import states_ns
 
     api.add_namespace(countries_ns, path="/countries")
-    # api.add_namespace(general_ns, path="/")
+    api.add_namespace(general_ns, path="/")
+    api.add_namespace(states_ns, path="/states")
 
     @app.route("/healthz")
     def healthz():
