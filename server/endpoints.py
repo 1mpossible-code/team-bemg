@@ -6,12 +6,14 @@ The endpoint called `endpoints` will return all available endpoints.
 from flask_restx import Resource, Namespace
 
 import data.countries as countries_db
+import data.states as states_db
 
 # Create namespace for each resource
 general_ns = Namespace('general', description='General API operations')
 countries_ns = Namespace(
     'countries',
     description='Operations related to countries')
+states_ns = Namespace('states', description='Operations related to states')
 
 # Constants for endpoints and responses
 HELLO_EP = '/hello'
@@ -43,6 +45,19 @@ class CountryList(Resource):
         Returns a list of all countries from the data layer.
         """
         return countries_db.get_countries()
+
+
+@states_ns.route('/')
+class StateList(Resource):
+    """
+    Handles the endpoint for retrieving a list of all states
+    """
+
+    def get(self):
+        """
+        Returns a list of all states from the data layer.
+        """
+        return states_db.get_states()
 
 
 @general_ns.route('/endpoints')
