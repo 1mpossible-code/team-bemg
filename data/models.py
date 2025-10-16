@@ -1,9 +1,13 @@
 from enum import StrEnum
+from typing import Any
 
 from db_connect import connect_db
 
 # --- Connection (set concerns at DB-level) ---
-db = connect_db()
+client = connect_db()
+
+
+db = client["project_db"]
 
 
 class CONTINENT_ENUM(StrEnum):
@@ -35,7 +39,7 @@ countries_validator = {
             "_id": {"bsonType": ["objectId", "string"]},
             "country_name": {"bsonType": "string", "minLength": 1},
             "country_code": {"bsonType": "string", "pattern": "^[A-Z]{2}$"},
-            "continent": {"enum": CONTINENT_ENUM},
+            "continent": {"enum": [member.value for member in CONTINENT_ENUM]},
             "capital": {"bsonType": "string", "minLength": 1},
             "population": {"bsonType": ["int", "long", "decimal"], "minimum": 0},
             "area_km2": {
@@ -95,7 +99,12 @@ cities_validator = {
             "_id": {"bsonType": ["objectId", "string"]},
             "city_name": {"bsonType": "string", "minLength": 1},
             "state_code": {"bsonType": "string", "pattern": "^[A-Z]{2}$"},
-            "country_code": {"bsonType": "string", "pattern": "^[A-Z]{2}$"},
+            # MongoDB JSON Schema requires enum values to be BSON-encodable scalars.
+            # Convert the StrEnum to a list of strings and declare the type.
+            "continent": {
+                "bsonType": "string",
+                "enum": [e.value for e in CONTINENT_ENUM],
+            },
             "population": {"bsonType": ["int", "long", "decimal"], "minimum": 0},
             "area_km2": {
                 "bsonType": ["double", "int", "long", "decimal"],
@@ -126,7 +135,7 @@ cities_validator = {
 # -------------------------
 # Idempotent collection setup
 # -------------------------
-def ensure_collection(name: str, validator: dict):
+def ensure_collection(name: str, validator: dict[str, Any]):
     exists = name in db.list_collection_names()
     if not exists:
         db.create_collection(
