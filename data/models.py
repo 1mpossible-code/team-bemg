@@ -1,13 +1,15 @@
+import os
 from enum import StrEnum
 from typing import Any
-
 from .db_connect import connect_db
+from dotenv import load_dotenv
 
-# --- Connection (set concerns at DB-level) ---
+load_dotenv()
+
+db_name = os.environ.get("DB_NAME", "seDB")
 client = connect_db()
 
-
-db = client["project_db"]
+db = client[db_name]
 
 
 class CONTINENT_ENUM(StrEnum):
@@ -20,9 +22,6 @@ class CONTINENT_ENUM(StrEnum):
     SOUTH_AMERICA = "South America"
 
 
-# =========================
-# Countries validator
-# =========================
 countries_validator = {
     "$jsonSchema": {
         "bsonType": "object",
@@ -50,9 +49,6 @@ countries_validator = {
     }
 }
 
-# =========================
-# States validator
-# =========================
 states_validator = {
     "$jsonSchema": {
         "bsonType": "object",
@@ -80,9 +76,6 @@ states_validator = {
     }
 }
 
-# =========================
-# Cities validator
-# =========================
 cities_validator = {
     "$jsonSchema": {
         "bsonType": "object",
@@ -99,12 +92,7 @@ cities_validator = {
             "_id": {"bsonType": ["objectId", "string"]},
             "city_name": {"bsonType": "string", "minLength": 1},
             "state_code": {"bsonType": "string", "pattern": "^[A-Z]{2}$"},
-            # MongoDB JSON Schema requires enum values to be BSON-encodable scalars.
-            # Convert the StrEnum to a list of strings and declare the type.
-            "continent": {
-                "bsonType": "string",
-                "enum": [e.value for e in CONTINENT_ENUM],
-            },
+            "country_code": {"bsonType": "string", "pattern": "^[A-Z]{2}$"},
             "population": {"bsonType": ["int", "long", "decimal"], "minimum": 0},
             "area_km2": {
                 "bsonType": ["double", "int", "long", "decimal"],
@@ -132,9 +120,6 @@ cities_validator = {
 }
 
 
-# -------------------------
-# Idempotent collection setup
-# -------------------------
 def ensure_collection(name: str, validator: dict[str, Any]):
     exists = name in db.list_collection_names()
     if not exists:
@@ -144,7 +129,6 @@ def ensure_collection(name: str, validator: dict[str, Any]):
             validationAction="error",
             validationLevel="strict",
         )
-        print(f"Created collection '{name}' with validation.")
     else:
         db.command(
             "collMod",
@@ -153,18 +137,12 @@ def ensure_collection(name: str, validator: dict[str, Any]):
             validationAction="error",
             validationLevel="strict",
         )
-        print(
-            f"Updated validator for existing collection '{name}'."
-        )  # Apply validators
 
 
 ensure_collection("countries", countries_validator)
 ensure_collection("states", states_validator)
 ensure_collection("cities", cities_validator)
 
-# -------------------------
-# Idempotent indexes
-# -------------------------
 db.get_collection("countries").create_index(
     "country_code", unique=True, name="uniq_country_code"
 )
@@ -176,62 +154,3 @@ db.get_collection("cities").create_index(
     unique=True,
     name="uniq_city_name_in_state",
 )
-
-# If you later store GeoJSON, use this 2dsphere index; for the current lat/long object, skip it.
-# db.get_collection("cities").create_index([("location", "2dsphere")], name="geo_idx")
-
-print("Schema validators and indexes are in place.")
-# Create a global MongoEngine instance; initialized in app factory via db.init_app(app)
-
-#
-# Countries!
-# TEST_COUNTRY = {
-#     COUNTRY_NAME: 'United States',
-#     COUNTRY_CODE: 'US',
-#     CONTINENT: 'North America',
-#     CAPITAL: 'Washington D.C.',
-#     POPULATION: 331000000,
-#     AREA_KM2: 9833517
-# }
-#
-#
-# ====================================
-# CITIES
-# TEST_CITY = {
-#     CITY_NAME: 'Springfield',
-#     STATE_CODE: 'IL',
-#     COUNTRY_CODE: 'US',
-#     POPULATION: 116000,
-#     AREA_KM2: 160,
-#     COORDINATES: {
-#         LATITUDE: 39.78,
-#         LONGITUDE: -89.64
-#     }
-# }
-#
-# ====================================
-#
-# STATES
-# TEST_STATE = {
-#     STATE_NAME: 'New York',
-#     STATE_CODE: 'NY',
-#     COUNTRY_CODE: 'US',
-#     CAPITAL: 'Albany',
-#     POPULATION: 20201249,
-#     AREA_KM2: 141297,
-# }
-
-#
-# ====================================
-# CITIES
-# TEST_CITY = {
-#     CITY_NAME: 'Springfield',
-#     STATE_CODE: 'IL',
-#     COUNTRY_CODE: 'US',
-#     POPULATION: 116000,
-#     AREA_KM2: 160,
-#     COORDINATES: {
-#         LATITUDE: 39.78,
-#         LONGITUDE: -89.64
-#     }
-# }
