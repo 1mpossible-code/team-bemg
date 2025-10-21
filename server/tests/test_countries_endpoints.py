@@ -195,3 +195,28 @@ class TestCountriesEndpoints:
             
             assert response.status_code == HTTPStatus.OK
             mock_get.assert_called_once_with('US')  # should be converted to uppercase
+
+    def test_create_country_database_error(self, client, sample_country):
+        """POST /countries returns 500 when DB insert raises."""
+        with patch('data.countries.add_country') as mock_add:
+            mock_add.side_effect = Exception('DB write failed')
+
+            response = client.post(
+                '/countries',
+                data=json.dumps(sample_country),
+                content_type='application/json'
+            )
+
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def test_create_country_malformed_json(self, client):
+        """POST /countries with invalid JSON should yield 400."""
+        bad_json = '{"name": "X", "code": "TC",}'  # trailing comma invalid
+
+        response = client.post(
+            '/countries',
+            data=bad_json,
+            content_type='application/json'
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
