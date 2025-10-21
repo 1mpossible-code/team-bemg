@@ -2,12 +2,56 @@
 Tests for the cities data module.
 """
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, DEFAULT
 from data import cities
 
 
 class TestCities:
     """Test class for cities module."""
+
+    # ===== Fixtures for reusable test data and mocks =====
+    @pytest.fixture
+    def sample_city_with_state(self):
+        """Sample city with state code."""
+        return {
+            cities.CITY_NAME: 'Springfield', cities.STATE_CODE: 'IL',
+            cities.COUNTRY_CODE: 'US', cities.POPULATION: 116000,
+            cities.AREA_KM2: 160, cities.COORDINATES: {
+                cities.LATITUDE: 39.78, cities.LONGITUDE: -89.64
+            }
+        }
+
+    @pytest.fixture
+    def sample_city_no_state(self):
+        """Sample city without state code."""
+        return {
+            cities.CITY_NAME: 'Monaco',
+            cities.COUNTRY_CODE: 'MC',
+            cities.POPULATION: 38000
+        }
+
+    @pytest.fixture
+    def mock_acknowledged_result(self):
+        """Mock result for successful database create operations."""
+        result = MagicMock()
+        result.acknowledged = True
+        return result
+
+    @pytest.fixture
+    def mock_modified_result(self):
+        """Mock result for successful database update operations."""
+        result = MagicMock()
+        result.modified_count = 1
+        return result
+
+    @pytest.fixture
+    def mock_not_modified_result(self):
+        """Mock result for database update with no changes."""
+        result = MagicMock()
+        result.modified_count = 0
+        return result
+
+    # ===== Read operations tests =====
 
     def test_get_cities(self):
         """Test getting all cities."""
@@ -121,74 +165,72 @@ class TestCities:
             )
             assert result == cities.TEST_CITY
 
-    def test_add_city_success_with_state(self):
+    # ===== Create operations tests =====
+
+    def test_add_city_success_with_state(self, sample_city_with_state, mock_acknowledged_result):
         """Test successfully adding a new city with state."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
              patch('data.db_connect.create') as mock_create:
-            mock_get.return_value = None  # City doesn't exist
-            mock_result = MagicMock()
-            mock_result.acknowledged = True
-            mock_create.return_value = mock_result
+            mock_get.return_value = None
+            mock_create.return_value = mock_acknowledged_result
             
-            result = cities.add_city(cities.TEST_CITY)
+            result = cities.add_city(sample_city_with_state)
             assert result is True
-            mock_create.assert_called_once_with(cities.CITIES_COLLECT, cities.TEST_CITY)
+            mock_create.assert_called_once_with(cities.CITIES_COLLECT, sample_city_with_state)
 
-    def test_add_city_success_without_state(self):
+    def test_add_city_success_without_state(self, sample_city_no_state, mock_acknowledged_result):
         """Test successfully adding a new city without state."""
-        city_no_state = {
-            cities.CITY_NAME: 'Monaco',
-            cities.COUNTRY_CODE: 'MC',
-            cities.POPULATION: 38000
-        }
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
              patch('data.db_connect.create') as mock_create:
-            mock_get.return_value = None  # City doesn't exist
-            mock_result = MagicMock()
-            mock_result.acknowledged = True
-            mock_create.return_value = mock_result
+            mock_get.return_value = None
+            mock_create.return_value = mock_acknowledged_result
             
-            result = cities.add_city(city_no_state)
+            result = cities.add_city(sample_city_no_state)
             assert result is True
-            mock_create.assert_called_once_with(cities.CITIES_COLLECT, city_no_state)
+            mock_create.assert_called_once_with(cities.CITIES_COLLECT, sample_city_no_state)
 
     def test_add_city_missing_required_field(self):
         """Test adding a city with missing required field."""
         incomplete_city = {cities.CITY_NAME: 'Test City'}
-        
         with pytest.raises(ValueError, match="Missing required field"):
             cities.add_city(incomplete_city)
 
-    def test_add_city_already_exists_in_state(self):
+    def test_add_city_missing_city_name(self):
+        """Test adding a city without city name raises ValueError."""
+        city_no_name = {cities.COUNTRY_CODE: 'US'}
+        with pytest.raises(ValueError, match="Missing required field: name"):
+            cities.add_city(city_no_name)
+
+    def test_add_city_missing_country_code(self):
+        """Test adding a city without country code raises ValueError."""
+        city_no_country = {cities.CITY_NAME: 'Somewhere'}
+        with pytest.raises(ValueError, match="Missing required field: country_code"):
+            cities.add_city(city_no_country)
+
+    def test_add_city_already_exists_in_state(self, sample_city_with_state):
         """Test adding a city that already exists in the same state."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get:
-            mock_get.return_value = cities.TEST_CITY  # City exists
-            
+            mock_get.return_value = sample_city_with_state
             with pytest.raises(ValueError, match="already exists in state"):
-                cities.add_city(cities.TEST_CITY)
+                cities.add_city(sample_city_with_state)
 
-    def test_add_city_already_exists_in_country(self):
+    def test_add_city_already_exists_in_country(self, sample_city_no_state):
         """Test adding a city that already exists in the same country (no state)."""
-        city_no_state = {
-            cities.CITY_NAME: 'Monaco',
-            cities.COUNTRY_CODE: 'MC'
-        }
         with patch('data.cities.get_city_by_name_and_country') as mock_get:
-            mock_get.return_value = city_no_state  # City exists
-            
+            mock_get.return_value = sample_city_no_state
             with pytest.raises(ValueError, match="already exists in country"):
-                cities.add_city(city_no_state)
+                cities.add_city(sample_city_no_state)
 
-    def test_update_city_success(self):
+    # ===== Update operations tests =====
+
+    def test_update_city_success(self, sample_city_with_state, mock_modified_result):
         """Test successfully updating a city."""
         update_data = {cities.POPULATION: 120000}
         
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
              patch('data.db_connect.update') as mock_update:
-            mock_get.return_value = cities.TEST_CITY
-            mock_result = MagicMock()
-            mock_result.modified_count = 1
-            mock_update.return_value = mock_result
+            mock_get.return_value = sample_city_with_state
+            mock_update.return_value = mock_modified_result
             
             result = cities.update_city('Springfield', 'IL', update_data)
             assert result is True
@@ -206,58 +248,46 @@ class TestCities:
             result = cities.update_city('Nowhere', 'XX', {})
             assert result is False
 
-    def test_update_city_strips_name_from_update(self):
+    def test_update_city_strips_name_from_update(self, sample_city_with_state, mock_modified_result):
         """Test update removes CITY_NAME before calling update."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
              patch('data.db_connect.update') as mock_update:
-            mock_get.return_value = cities.TEST_CITY
-            mock_result = MagicMock()
-            mock_result.modified_count = 1
-            mock_update.return_value = mock_result
+            mock_get.return_value = sample_city_with_state
+            mock_update.return_value = mock_modified_result
             payload = {cities.CITY_NAME: 'NewName', cities.POPULATION: 123}
             
             result = cities.update_city('Springfield', 'IL', payload)
             assert result is True
-            # Should have removed CITY_NAME from payload
             mock_update.assert_called_once_with(
                 cities.CITIES_COLLECT,
                 {cities.CITY_NAME: 'Springfield', cities.STATE_CODE: 'IL'},
                 {cities.POPULATION: 123}
             )
 
-    def test_update_city_strips_state_code_from_update(self):
+    def test_update_city_strips_state_code_from_update(self, sample_city_with_state, mock_modified_result):
         """Test update removes STATE_CODE before calling update."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
              patch('data.db_connect.update') as mock_update:
-            mock_get.return_value = cities.TEST_CITY
-            mock_result = MagicMock()
-            mock_result.modified_count = 1
-            mock_update.return_value = mock_result
+            mock_get.return_value = sample_city_with_state
+            mock_update.return_value = mock_modified_result
             payload = {cities.STATE_CODE: 'XX', cities.POPULATION: 123}
             
             result = cities.update_city('Springfield', 'IL', payload)
             assert result is True
-            # Should have removed STATE_CODE from payload
             mock_update.assert_called_once_with(
                 cities.CITIES_COLLECT,
                 {cities.CITY_NAME: 'Springfield', cities.STATE_CODE: 'IL'},
                 {cities.POPULATION: 123}
             )
 
-    def test_update_city_by_name_and_country_success(self):
+    def test_update_city_by_name_and_country_success(self, sample_city_no_state, mock_modified_result):
         """Test successfully updating a city by name and country."""
         update_data = {cities.POPULATION: 40000}
-        city_no_state = {
-            cities.CITY_NAME: 'Monaco',
-            cities.COUNTRY_CODE: 'MC'
-        }
         
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
              patch('data.db_connect.update') as mock_update:
-            mock_get.return_value = city_no_state
-            mock_result = MagicMock()
-            mock_result.modified_count = 1
-            mock_update.return_value = mock_result
+            mock_get.return_value = sample_city_no_state
+            mock_update.return_value = mock_modified_result
             
             result = cities.update_city_by_name_and_country('Monaco', 'MC', update_data)
             assert result is True
@@ -275,14 +305,12 @@ class TestCities:
             result = cities.update_city_by_name_and_country('Nowhere', 'XX', {})
             assert result is False
 
-    def test_update_city_by_name_and_country_strips_name(self):
+    def test_update_city_by_name_and_country_strips_name(self, sample_city_no_state, mock_modified_result):
         """Test update by country removes CITY_NAME before calling update."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
              patch('data.db_connect.update') as mock_update:
-            mock_get.return_value = {cities.CITY_NAME: 'Monaco', cities.COUNTRY_CODE: 'MC'}
-            mock_result = MagicMock()
-            mock_result.modified_count = 1
-            mock_update.return_value = mock_result
+            mock_get.return_value = sample_city_no_state
+            mock_update.return_value = mock_modified_result
             payload = {cities.CITY_NAME: 'NewName', cities.POPULATION: 123}
             
             result = cities.update_city_by_name_and_country('Monaco', 'MC', payload)
@@ -293,14 +321,12 @@ class TestCities:
                 {cities.POPULATION: 123}
             )
 
-    def test_update_city_by_name_and_country_strips_country_code(self):
+    def test_update_city_by_name_and_country_strips_country_code(self, sample_city_no_state, mock_modified_result):
         """Test update by country removes COUNTRY_CODE before calling update."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
              patch('data.db_connect.update') as mock_update:
-            mock_get.return_value = {cities.CITY_NAME: 'Monaco', cities.COUNTRY_CODE: 'MC'}
-            mock_result = MagicMock()
-            mock_result.modified_count = 1
-            mock_update.return_value = mock_result
+            mock_get.return_value = sample_city_no_state
+            mock_update.return_value = mock_modified_result
             payload = {cities.COUNTRY_CODE: 'XX', cities.POPULATION: 123}
             
             result = cities.update_city_by_name_and_country('Monaco', 'MC', payload)
@@ -311,10 +337,12 @@ class TestCities:
                 {cities.POPULATION: 123}
             )
 
+    # ===== Delete operations tests =====
+
     def test_delete_city_success(self):
         """Test successfully deleting a city."""
         with patch('data.db_connect.delete') as mock_delete:
-            mock_delete.return_value = 1  # One document deleted
+            mock_delete.return_value = 1
             
             result = cities.delete_city('Springfield', 'IL')
             assert result is True
@@ -346,10 +374,12 @@ class TestCities:
     def test_delete_city_by_name_and_country_not_found(self):
         """Test deleting a city by name and country that doesn't exist."""
         with patch('data.db_connect.delete') as mock_delete:
-            mock_delete.return_value = 0  # No documents deleted
+            mock_delete.return_value = 0
             
             result = cities.delete_city_by_name_and_country('Nowhere', 'XX')
             assert result is False
+
+    # ===== Existence check tests =====
 
     def test_city_exists_with_state(self):
         """Test checking if a city exists by name and state."""
@@ -399,3 +429,16 @@ class TestCities:
             result = cities.city_exists('Nowhere')
             assert result is False
 
+    # ===== Integration tests (skipped) =====
+
+    @pytest.mark.skip(reason="Integration test - requires MongoDB with geospatial indexes")
+    def test_geospatial_query_integration(self):
+        """
+        Integration test for geospatial queries on city coordinates.
+        Would test finding cities within a certain radius using MongoDB's $near operator.
+        """
+        # This would require:
+        # 1. A running MongoDB instance with 2dsphere index on coordinates
+        # 2. Real city data with valid lat/long coordinates
+        # 3. Testing queries like "find all cities within 50km of these coordinates"
+        pass
