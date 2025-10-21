@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any
 
-from db_connect import connect_db
+from .db_connect import connect_db
 
 # --- Connection (set concerns at DB-level) ---
 client = connect_db()
