@@ -13,22 +13,32 @@ from data.countries import VALID_CONTINENTS
 countries_ns = Namespace('countries', description='Country operations')
 
 # Define models for Swagger documentation and validation
-country_model = countries_ns.model('Country', {
-    'name': fields.String(required=True, description='Country name',
-                          example='United States'),
-    'code': fields.String(required=True,
-                          description='ISO 3166-1 alpha-2 country code',
-                          example='US'),
-    'continent': fields.String(required=True, description='Continent name',
-                               enum=VALID_CONTINENTS,
-                               example='North America'),
-    'capital': fields.String(required=True, description='Capital city',
-                             example='Washington D.C.'),
-    'population': fields.Integer(description='Population count',
-                                 example=331000000),
-    'area_km2': fields.Float(description='Area in square kilometers',
-                             example=9833517.0)
-})
+country_model = countries_ns.model(
+    'Country',
+    {
+        'country_name': fields.String(
+            required=True,
+            description='Country name',
+            example='United States'),
+        'country_code': fields.String(
+            required=True,
+            description='ISO 3166-1 alpha-2 country code',
+            example='US'),
+        'continent': fields.String(
+            required=True,
+            description='Continent name',
+            enum=VALID_CONTINENTS,
+            example='North America'),
+        'capital': fields.String(
+            required=True,
+            description='Capital city',
+            example='Washington D.C.'),
+        'population': fields.Integer(
+            description='Population count',
+            example=331000000),
+        'area_km2': fields.Float(
+            description='Area in square kilometers',
+            example=9833517.0)})
 
 country_update_model = countries_ns.model('CountryUpdate', {
     'name': fields.String(description='Country name'),

@@ -6,8 +6,8 @@ import data.db_connect as dbc
 
 STATES_COLLECT = 'states'
 
-STATE_NAME = 'name'
-STATE_CODE = 'code'
+STATE_NAME = 'state_name'
+STATE_CODE = 'state_code'
 COUNTRY_CODE = 'country_code'
 CAPITAL = 'capital'
 POPULATION = 'population'

@@ -24,8 +24,8 @@ class TestCountriesEndpoints:
     def sample_country(self):
         """Sample country data for testing."""
         return {
-            'name': 'Test Country',
-            'code': 'TC',
+            'country_name': 'Test Country',
+            'country_code': 'TC',
             'continent': 'North America',
             'capital': 'Test Capital',
             'population': 1000000,
@@ -64,7 +64,7 @@ class TestCountriesEndpoints:
             
             assert response.status_code == HTTPStatus.CREATED
             data = json.loads(response.data)
-            assert data['name'] == sample_country['name']
+            assert data['country_name'] == sample_country['country_name']
             mock_add.assert_called_once_with(sample_country)
 
     def test_create_country_invalid_continent(self, client, sample_country):
@@ -97,7 +97,7 @@ class TestCountriesEndpoints:
             
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
-            assert data['code'] == 'US'
+            assert data['country_code'] == 'US'
             mock_get.assert_called_once_with('US')
 
     def test_get_country_by_code_not_found(self, client):

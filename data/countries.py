@@ -7,8 +7,8 @@ import data.db_connect as dbc
 
 COUNTRIES_COLLECT = 'countries'
 
-COUNTRY_NAME = 'name'
-COUNTRY_CODE = 'code'
+COUNTRY_NAME = 'country_name'
+COUNTRY_CODE = 'country_code'
 CONTINENT = 'continent'
 POPULATION = 'population'
 AREA_KM2 = 'area_km2'
