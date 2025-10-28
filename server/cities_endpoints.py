@@ -3,28 +3,27 @@ from flask_restx import Resource, fields, Namespace
 from http import HTTPStatus
 import data.cities as cities_data
 import data.states as states_data
-from data.models import cities_validator
 
 cities_ns = Namespace('cities', description='City operations')
 
-coord_props = (
-    cities_validator["$jsonSchema"]["properties"]["coordinates"]["properties"]
-)
+# we avoid importing validators that touch the database on import
+LAT_MIN, LAT_MAX = -90, 90
+LON_MIN, LON_MAX = -180, 180
 coordinate_model = cities_ns.model('Coordinate', {
-    'latitude': fields.Float(required=True, description='Latitude',
-                             min=coord_props["latitude"]["minimum"],
-                             max=coord_props["latitude"]["maximum"],
-                             example=40.7128),
-    'longitude': fields.Float(required=True, description='Longitude',
-                              min=coord_props["longitude"]["minimum"],
-                              max=coord_props["longitude"]["maximum"],
-                              example=-74.0060)
+    'lat': fields.Float(required=True, description='Latitude',
+                        min=LAT_MIN,
+                        max=LAT_MAX,
+                        example=40.7128),
+    'lon': fields.Float(required=True, description='Longitude',
+                        min=LON_MIN,
+                        max=LON_MAX,
+                        example=-74.0060)
 })
 
 city_model = cities_ns.model(
     'City',
     {
-        'city_name': fields.String(
+        'name': fields.String(
             required=True,
             description='City name',
             example='New York'),
@@ -84,21 +83,22 @@ class CitiesList(Resource):
             cities_ns.abort(HTTPStatus.BAD_REQUEST,
                             "state_code and country_code are required")
 
+        # Only wrap the DB access, not the abort calls
         try:
             parent_state = states_data.get_state_by_code(state_code.upper())
-            if not parent_state:
-                cities_ns.abort(HTTPStatus.BAD_REQUEST,
-                                (f"Parent state with code '{state_code}' "
-                                 f"does not exist"))
-
-            if parent_state['country_code'] != country_code.upper():
-                cities_ns.abort(HTTPStatus.BAD_REQUEST,
-                                (f"State '{state_code}' does not belong to "
-                                 f"country '{country_code}'"))
-
         except Exception as e:
             cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
                             f"Error validating parent state: {str(e)}")
+
+        if not parent_state:
+            cities_ns.abort(HTTPStatus.BAD_REQUEST,
+                            (f"Parent state with code '{state_code}' "
+                             f"does not exist"))
+
+        if parent_state.get('country_code') != country_code.upper():
+            cities_ns.abort(HTTPStatus.BAD_REQUEST,
+                            (f"State '{state_code}' does not belong to "
+                             f"country '{country_code}'"))
 
         try:
             success = cities_data.add_city(city_data)
