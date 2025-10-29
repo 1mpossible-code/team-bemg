@@ -163,7 +163,8 @@ class TestCountries:
 
     def test_delete_country_success(self):
         """Test successfully deleting a country."""
-        with patch('data.db_connect.delete') as mock_delete:
+        with patch('data.countries.can_delete_country', return_value=(True, "")), \
+             patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 1  # One document deleted
             
             result = countries.delete_country('US')
@@ -172,11 +173,32 @@ class TestCountries:
 
     def test_delete_country_not_found(self):
         """Test deleting a country that doesn't exist."""
-        with patch('data.db_connect.delete') as mock_delete:
+        with patch('data.countries.can_delete_country', return_value=(True, "")), \
+             patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 0  # No documents deleted
             
             result = countries.delete_country('XX')
             assert result is False
+
+    def test_delete_country_with_dependent_states(self):
+        """Test that deleting a country with states raises ValueError."""
+        with patch('data.countries.get_dependent_states_count', return_value=5):
+            with pytest.raises(ValueError, match="Cannot delete: 5 state"):
+                countries.delete_country('US')
+
+    def test_can_delete_country_with_dependencies(self):
+        """Test can_delete_country returns False when states exist."""
+        with patch('data.countries.get_dependent_states_count', return_value=3):
+            can_delete, reason = countries.can_delete_country('US')
+            assert can_delete is False
+            assert "3 state" in reason
+
+    def test_can_delete_country_no_dependencies(self):
+        """Test can_delete_country returns True when no states exist."""
+        with patch('data.countries.get_dependent_states_count', return_value=0):
+            can_delete, reason = countries.can_delete_country('XX')
+            assert can_delete is True
+            assert reason == ""
 
     def test_country_exists_true(self):
         """Test checking if a country exists - returns True."""

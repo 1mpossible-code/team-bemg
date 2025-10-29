@@ -108,11 +108,36 @@ def update_state(code: str, update_data: dict) -> bool:
     return result.modified_count > 0
 
 
+def get_dependent_cities_count(state_code: str) -> int:
+    """
+    Check how many cities belong to this state.
+    """
+    import data.cities as cities
+    cities_list = cities.get_cities_by_state(state_code)
+    return len(cities_list)
+
+
+def can_delete_state(state_code: str) -> tuple[bool, str]:
+    """
+    Check if state can be safely deleted.
+    Returns (can_delete: bool, reason: str)
+    """
+    dependent_count = get_dependent_cities_count(state_code)
+    if dependent_count > 0:
+        return False, f"Cannot delete: {dependent_count} city/cities depend on this state"
+    return True, ""
+
+
 def delete_state(code: str) -> bool:
     """
-    Delete a state by its code
-    Returns True if successful, False otherwise
+    Delete a state by its code.
+    Checks for dependent cities first.
+    Returns True if successful, False otherwise.
     """
+    can_delete, reason = can_delete_state(code)
+    if not can_delete:
+        raise ValueError(reason)
+    
     result = dbc.delete(STATES_COLLECT, {STATE_CODE: code})
     return result > 0
 

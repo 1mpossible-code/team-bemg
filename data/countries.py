@@ -132,11 +132,36 @@ def update_country(code: str, update_data: dict) -> bool:
     return result.modified_count > 0
 
 
+def get_dependent_states_count(country_code: str) -> int:
+    """
+    Check how many states belong to this country.
+    """
+    import data.states as states
+    states_list = states.get_states_by_country(country_code)
+    return len(states_list)
+
+
+def can_delete_country(country_code: str) -> tuple[bool, str]:
+    """
+    Check if country can be safely deleted.
+    Returns (can_delete: bool, reason: str)
+    """
+    dependent_count = get_dependent_states_count(country_code)
+    if dependent_count > 0:
+        return False, f"Cannot delete: {dependent_count} state(s) depend on this country"
+    return True, ""
+
+
 def delete_country(code: str) -> bool:
     """
-    Delete a country by its code
-    Returns True if successful, False otherwise
+    Delete a country by its code.
+    Checks for dependent states first.
+    Returns True if successful, False otherwise.
     """
+    can_delete, reason = can_delete_country(code)
+    if not can_delete:
+        raise ValueError(reason)
+    
     result = dbc.delete(COUNTRIES_COLLECT, {COUNTRY_CODE: code})
     return result > 0
 

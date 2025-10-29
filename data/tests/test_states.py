@@ -143,7 +143,7 @@ class TestStates:
     def test_add_state_missing_state_code(self):
         """Test adding a state without state_code raises ValueError."""
         incomplete = {S.STATE_NAME: 'Test', S.COUNTRY_CODE: 'US'}
-        with pytest.raises(ValueError, match="Missing required field: code"):
+        with pytest.raises(ValueError, match="Missing required field: state_code"):
             S.add_state(incomplete)
 
     def test_add_state_exists(self, sample_state):
@@ -226,15 +226,37 @@ class TestStates:
 
     def test_delete_state_success(self):
         """Test deleting a state successfully."""
-        with patch('data.db_connect.delete') as mock_delete:
+        with patch('data.states.can_delete_state', return_value=(True, "")), \
+             patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 1
             assert S.delete_state('NY') is True
 
     def test_delete_state_not_found(self):
         """Test deleting a state that does not exist."""
-        with patch('data.db_connect.delete') as mock_delete:
+        with patch('data.states.can_delete_state', return_value=(True, "")), \
+             patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 0
             assert S.delete_state('XX') is False
+
+    def test_delete_state_with_dependent_cities(self):
+        """Test that deleting a state with cities raises ValueError."""
+        with patch('data.states.get_dependent_cities_count', return_value=10):
+            with pytest.raises(ValueError, match="Cannot delete: 10 city"):
+                S.delete_state('NY')
+
+    def test_can_delete_state_with_dependencies(self):
+        """Test can_delete_state returns False when cities exist."""
+        with patch('data.states.get_dependent_cities_count', return_value=5):
+            can_delete, reason = S.can_delete_state('NY')
+            assert can_delete is False
+            assert "5 city" in reason
+
+    def test_can_delete_state_no_dependencies(self):
+        """Test can_delete_state returns True when no cities exist."""
+        with patch('data.states.get_dependent_cities_count', return_value=0):
+            can_delete, reason = S.can_delete_state('XX')
+            assert can_delete is True
+            assert reason == ""
 
     # ===== Existence check tests =====
 

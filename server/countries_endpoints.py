@@ -180,13 +180,18 @@ class Country(Resource):
                            'Country deleted successfully')
     @countries_ns.response(HTTPStatus.NOT_FOUND, 'Country not found',
                            error_model)
+    @countries_ns.response(HTTPStatus.CONFLICT,
+                           'Cannot delete country with dependent states',
+                           error_model)
     def delete(self, country_code):
         """
         Delete a country
-        Removes the country from the database.
+        Removes the country from the database if no dependent states exist.
         """
         try:
             success = countries_data.delete_country(country_code.upper())
+        except ValueError as e:
+            countries_ns.abort(HTTPStatus.CONFLICT, str(e))
         except Exception as e:
             countries_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
                                f"Database error: {str(e)}")

@@ -168,6 +168,17 @@ class TestCountriesEndpoints:
             
             assert response.status_code == HTTPStatus.NOT_FOUND
 
+    def test_delete_country_with_dependent_states(self, client):
+        """Test DELETE /countries/{code} returns 409 when states exist."""
+        with patch('data.countries.delete_country') as mock_delete:
+            mock_delete.side_effect = ValueError("Cannot delete: 5 state(s) depend on this country")
+            
+            response = client.delete('/countries/US')
+            
+            assert response.status_code == HTTPStatus.CONFLICT
+            data = json.loads(response.data)
+            assert '5 state' in data['message'].lower()
+
     def test_get_countries_by_continent_success(self, client):
         """Test successful retrieval of countries by continent."""
         with patch('data.countries.get_countries_by_continent') as mock_get:
