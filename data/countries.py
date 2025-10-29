@@ -98,6 +98,21 @@ def get_countries_by_population_range(min_pop: int = None, max_pop: int = None) 
     return dbc.read_filtered(COUNTRIES_COLLECT, query)
 
 
+def search_countries_by_name(name_query: str) -> list:
+    """
+    Search countries by name using partial matching (case-insensitive)
+    Returns a list of countries whose names contain the search query
+    """
+    if not name_query or not name_query.strip():
+        return []
+    
+    # Use MongoDB regex for case-insensitive partial matching
+    search_pattern = {"$regex": name_query.strip(), "$options": "i"}
+    query = {COUNTRY_NAME: search_pattern}
+    
+    return dbc.read_filtered(COUNTRIES_COLLECT, query)
+
+
 def add_country(country_data: dict) -> bool:
     """
     Add a new country to the database
