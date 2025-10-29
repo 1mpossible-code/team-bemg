@@ -267,8 +267,10 @@ class CountriesSearch(Resource):
     def get(self):
         """
         Search countries by name
-        Returns countries whose names contain the search query (case-insensitive).
-        Supports partial matching - e.g., searching for 'united' will find 'United States'.
+        Returns countries whose names contain the search query
+        (case-insensitive).
+        Supports partial matching - e.g., searching for 'united' will
+        find 'United States'.
         """
         args = search_parser.parse_args()
         name_query = args.get("name")
@@ -276,7 +278,7 @@ class CountriesSearch(Resource):
         if not name_query or not name_query.strip():
             countries_ns.abort(
                 HTTPStatus.BAD_REQUEST,
-                "Search query 'name' parameter is required and cannot be empty",
+                "Search query 'name' parameter is required and cannot be " "empty",
             )
 
         try:
