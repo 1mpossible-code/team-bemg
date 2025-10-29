@@ -4,6 +4,7 @@ All country-related database operations should go through this module
 """
 
 import data.db_connect as dbc
+from data.utils import sanitize_string, sanitize_code
 
 COUNTRIES_COLLECT = 'countries'
 
@@ -106,6 +107,16 @@ def add_country(country_data: dict) -> bool:
         if field not in country_data:
             raise ValueError(f"Missing required field: {field}")
     
+    # Sanitize string fields
+    if COUNTRY_NAME in country_data:
+        country_data[COUNTRY_NAME] = sanitize_string(country_data[COUNTRY_NAME])
+    if COUNTRY_CODE in country_data:
+        country_data[COUNTRY_CODE] = sanitize_code(country_data[COUNTRY_CODE])
+    if CAPITAL in country_data:
+        country_data[CAPITAL] = sanitize_string(country_data[CAPITAL])
+    if CONTINENT in country_data:
+        country_data[CONTINENT] = sanitize_string(country_data[CONTINENT])
+    
     # Validate continent
     if country_data[CONTINENT] not in VALID_CONTINENTS:
         raise ValueError(f"Invalid continent: {country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}")
@@ -124,6 +135,14 @@ def update_country(code: str, update_data: dict) -> bool:
     """
     if not get_country_by_code(code):
         return False
+    
+    # Sanitize string fields in update
+    if COUNTRY_NAME in update_data:
+        update_data[COUNTRY_NAME] = sanitize_string(update_data[COUNTRY_NAME])
+    if CAPITAL in update_data:
+        update_data[CAPITAL] = sanitize_string(update_data[CAPITAL])
+    if CONTINENT in update_data:
+        update_data[CONTINENT] = sanitize_string(update_data[CONTINENT])
     
     if COUNTRY_CODE in update_data:
         del update_data[COUNTRY_CODE]

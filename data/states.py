@@ -3,6 +3,7 @@ This module provides data layer operations for states.
 All state-related database operations should go through this module.
 """
 import data.db_connect as dbc
+from data.utils import sanitize_string, sanitize_code
 
 STATES_COLLECT = 'states'
 
@@ -85,6 +86,16 @@ def add_state(state_data: dict) -> bool:
     for field in REQUIRED_FIELDS:
         if field not in state_data:
             raise ValueError(f"Missing required field: {field}")
+    
+    # Sanitize string fields
+    if STATE_NAME in state_data:
+        state_data[STATE_NAME] = sanitize_string(state_data[STATE_NAME])
+    if STATE_CODE in state_data:
+        state_data[STATE_CODE] = sanitize_code(state_data[STATE_CODE])
+    if COUNTRY_CODE in state_data:
+        state_data[COUNTRY_CODE] = sanitize_code(state_data[COUNTRY_CODE])
+    if CAPITAL in state_data:
+        state_data[CAPITAL] = sanitize_string(state_data[CAPITAL])
         
     if get_state_by_code(state_data[STATE_CODE]):
         raise ValueError(f"State with code {state_data[STATE_CODE]} already exists")
@@ -100,6 +111,14 @@ def update_state(code: str, update_data: dict) -> bool:
     """
     if not get_state_by_code(code):
         return False
+    
+    # Sanitize string fields in update
+    if STATE_NAME in update_data:
+        update_data[STATE_NAME] = sanitize_string(update_data[STATE_NAME])
+    if COUNTRY_CODE in update_data:
+        update_data[COUNTRY_CODE] = sanitize_code(update_data[COUNTRY_CODE])
+    if CAPITAL in update_data:
+        update_data[CAPITAL] = sanitize_string(update_data[CAPITAL])
     
     if STATE_CODE in update_data:
         del update_data[STATE_CODE]

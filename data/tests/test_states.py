@@ -265,3 +265,57 @@ class TestStates:
         with patch('data.states.get_state_by_code') as mock_get:
             mock_get.return_value = S.TEST_STATE
             assert S.state_exists('NY') is True
+
+    # ===== Input Sanitization tests =====
+
+    def test_add_state_sanitizes_whitespace(self, mock_successful_insert):
+        """Test that add_state strips whitespace and normalizes codes."""
+        with patch('data.states.get_state_by_code') as mock_get, \
+             patch('data.db_connect.create', return_value=mock_successful_insert):
+            mock_get.return_value = None
+            
+            state_data = {
+                S.STATE_NAME: '  New York  ',
+                S.STATE_CODE: ' ny ',
+                S.COUNTRY_CODE: ' us ',
+                S.CAPITAL: '  Albany  '
+            }
+            S.add_state(state_data)
+            
+            # Verify sanitization
+            assert state_data[S.STATE_NAME] == 'New York'
+            assert state_data[S.STATE_CODE] == 'NY'
+            assert state_data[S.COUNTRY_CODE] == 'US'
+            assert state_data[S.CAPITAL] == 'Albany'
+    
+    def test_add_state_collapses_spaces(self, mock_successful_insert):
+        """Test that add_state collapses multiple spaces."""
+        with patch('data.states.get_state_by_code') as mock_get, \
+             patch('data.db_connect.create', return_value=mock_successful_insert):
+            mock_get.return_value = None
+            
+            state_data = {
+                S.STATE_NAME: 'New  York',
+                S.STATE_CODE: 'NY',
+                S.COUNTRY_CODE: 'US',
+                S.CAPITAL: 'Albany  City'
+            }
+            S.add_state(state_data)
+            
+            assert state_data[S.STATE_NAME] == 'New York'
+            assert state_data[S.CAPITAL] == 'Albany City'
+    
+    def test_update_state_sanitizes_whitespace(self, sample_state, mock_modified_result):
+        """Test that update_state sanitizes input fields."""
+        with patch('data.states.get_state_by_code', return_value=sample_state), \
+             patch('data.db_connect.update', return_value=mock_modified_result):
+            
+            update_data = {
+                S.STATE_NAME: '  Updated Name  ',
+                S.CAPITAL: '  New Capital  '
+            }
+            S.update_state('NY', update_data)
+            
+            # Verify sanitization occurred
+            assert update_data[S.STATE_NAME] == 'Updated Name'
+            assert update_data[S.CAPITAL] == 'New Capital'

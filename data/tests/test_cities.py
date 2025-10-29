@@ -442,3 +442,49 @@ class TestCities:
         # 2. Real city data with valid lat/long coordinates
         # 3. Testing queries like "find all cities within 50km of these coordinates"
         pass
+
+    # ===== Input Sanitization tests =====
+
+    def test_add_city_sanitizes_whitespace(self, mock_acknowledged_result):
+        """Test that add_city strips whitespace and normalizes codes."""
+        with patch('data.cities.get_city_by_name_and_state') as mock_get, \
+             patch('data.db_connect.create', return_value=mock_acknowledged_result):
+            mock_get.return_value = None
+            
+            city_data = {
+                cities.CITY_NAME: '  Springfield  ',
+                cities.STATE_CODE: ' il ',
+                cities.COUNTRY_CODE: ' us '
+            }
+            cities.add_city(city_data)
+            
+            # Verify sanitization
+            assert city_data[cities.CITY_NAME] == 'Springfield'
+            assert city_data[cities.STATE_CODE] == 'IL'
+            assert city_data[cities.COUNTRY_CODE] == 'US'
+    
+    def test_add_city_collapses_spaces(self, mock_acknowledged_result):
+        """Test that add_city collapses multiple spaces in name."""
+        with patch('data.cities.get_city_by_name_and_state') as mock_get, \
+             patch('data.db_connect.create', return_value=mock_acknowledged_result):
+            mock_get.return_value = None
+            
+            city_data = {
+                cities.CITY_NAME: 'New  York  City',
+                cities.STATE_CODE: 'NY',
+                cities.COUNTRY_CODE: 'US'
+            }
+            cities.add_city(city_data)
+            
+            assert city_data[cities.CITY_NAME] == 'New York City'
+    
+    def test_update_city_sanitizes_country_code(self, sample_city_with_state, mock_modified_result):
+        """Test that update_city sanitizes country code."""
+        with patch('data.cities.get_city_by_name_and_state', return_value=sample_city_with_state), \
+             patch('data.db_connect.update', return_value=mock_modified_result):
+            
+            update_data = {cities.COUNTRY_CODE: ' ca '}
+            cities.update_city('Springfield', 'IL', update_data)
+            
+            # Verify sanitization occurred
+            assert update_data[cities.COUNTRY_CODE] == 'CA'

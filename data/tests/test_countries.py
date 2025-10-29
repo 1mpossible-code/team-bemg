@@ -215,3 +215,66 @@ class TestCountries:
             
             result = countries.country_exists('XX')
             assert result is False
+
+    # Input Sanitization Tests
+    def test_add_country_sanitizes_whitespace(self):
+        """Test that add_country strips leading/trailing whitespace from strings."""
+        with patch('data.countries.get_country_by_code') as mock_get, \
+             patch('data.db_connect.create') as mock_create:
+            mock_get.return_value = None
+            ack = MagicMock(); ack.acknowledged = True
+            mock_create.return_value = ack
+            
+            country_data = {
+                countries.COUNTRY_NAME: '  United States  ',
+                countries.COUNTRY_CODE: ' us ',
+                countries.CONTINENT: '  North America  ',
+                countries.CAPITAL: '  Washington D.C.  '
+            }
+            countries.add_country(country_data)
+            
+            # Verify sanitized data was stored
+            assert country_data[countries.COUNTRY_NAME] == 'United States'
+            assert country_data[countries.COUNTRY_CODE] == 'US'
+            assert country_data[countries.CONTINENT] == 'North America'
+            assert country_data[countries.CAPITAL] == 'Washington D.C.'
+    
+    def test_add_country_collapses_multiple_spaces(self):
+        """Test that add_country collapses multiple spaces in strings."""
+        with patch('data.countries.get_country_by_code') as mock_get, \
+             patch('data.db_connect.create') as mock_create:
+            mock_get.return_value = None
+            ack = MagicMock(); ack.acknowledged = True
+            mock_create.return_value = ack
+            
+            country_data = {
+                countries.COUNTRY_NAME: 'United  States',
+                countries.COUNTRY_CODE: 'US',
+                countries.CONTINENT: 'North America',
+                countries.CAPITAL: 'Washington  D.C.'
+            }
+            countries.add_country(country_data)
+            
+            # Verify multiple spaces were collapsed
+            assert country_data[countries.COUNTRY_NAME] == 'United States'
+            assert country_data[countries.CAPITAL] == 'Washington D.C.'
+    
+    def test_update_country_sanitizes_whitespace(self):
+        """Test that update_country strips whitespace from update fields."""
+        with patch('data.countries.get_country_by_code') as mock_get, \
+             patch('data.db_connect.update') as mock_update:
+            mock_get.return_value = countries.TEST_COUNTRY
+            res = MagicMock(); res.modified_count = 1
+            mock_update.return_value = res
+            
+            update_data = {
+                countries.COUNTRY_NAME: '  New Name  ',
+                countries.CAPITAL: '  New Capital  '
+            }
+            countries.update_country('US', update_data)
+            
+            # Verify sanitization occurred
+            mock_update.assert_called_once()
+            call_args = mock_update.call_args[0]
+            assert call_args[2][countries.COUNTRY_NAME] == 'New Name'
+            assert call_args[2][countries.CAPITAL] == 'New Capital'

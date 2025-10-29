@@ -3,6 +3,7 @@ This module provides data layer operations for cities.
 All city-related database operations should go through this module.
 """
 import data.db_connect as dbc
+from data.utils import sanitize_string, sanitize_code
 
 CITIES_COLLECT = 'cities'
 
@@ -101,6 +102,14 @@ def add_city(city_data: dict) -> bool:
         if field not in city_data:
             raise ValueError(f"Missing required field: {field}")
     
+    # Sanitize string fields
+    if CITY_NAME in city_data:
+        city_data[CITY_NAME] = sanitize_string(city_data[CITY_NAME])
+    if STATE_CODE in city_data:
+        city_data[STATE_CODE] = sanitize_code(city_data[STATE_CODE])
+    if COUNTRY_CODE in city_data:
+        city_data[COUNTRY_CODE] = sanitize_code(city_data[COUNTRY_CODE])
+    
     # Check for duplicate: same name in same state (if state provided)
     if STATE_CODE in city_data:
         existing = get_city_by_name_and_state(city_data[CITY_NAME], city_data[STATE_CODE])
@@ -128,6 +137,10 @@ def update_city(name: str, state_code: str, update_data: dict) -> bool:
     if not get_city_by_name_and_state(name, state_code):
         return False
     
+    # Sanitize string fields in update
+    if COUNTRY_CODE in update_data:
+        update_data[COUNTRY_CODE] = sanitize_code(update_data[COUNTRY_CODE])
+    
     # Prevent updating the name or state_code fields directly
     if CITY_NAME in update_data:
         del update_data[CITY_NAME]
@@ -145,6 +158,10 @@ def update_city_by_name_and_country(name: str, country_code: str, update_data: d
     """
     if not get_city_by_name_and_country(name, country_code):
         return False
+    
+    # Sanitize string fields in update
+    if STATE_CODE in update_data:
+        update_data[STATE_CODE] = sanitize_code(update_data[STATE_CODE])
     
     # Prevent updating the name or country_code fields directly
     if CITY_NAME in update_data:
