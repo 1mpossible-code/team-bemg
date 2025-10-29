@@ -20,7 +20,9 @@ country_model = countries_ns.model(
             required=True, description="Country name", example="United States"
         ),
         "country_code": fields.String(
-            required=True, description="ISO 3166-1 alpha-2 country code", example="US"
+            required=True,
+            description="ISO 3166-1 alpha-2 country code",
+            example="US"
         ),
         "continent": fields.String(
             required=True,
@@ -29,9 +31,13 @@ country_model = countries_ns.model(
             example="North America",
         ),
         "capital": fields.String(
-            required=True, description="Capital city", example="Washington D.C."
+            required=True,
+            description="Capital city",
+            example="Washington D.C."
         ),
-        "population": fields.Integer(description="Population count", example=331000000),
+        "population": fields.Integer(
+            description="Population count", example=331000000
+        ),
         "area_km2": fields.Float(
             description="Area in square kilometers", example=9833517.0
         ),
@@ -42,10 +48,14 @@ country_update_model = countries_ns.model(
     "CountryUpdate",
     {
         "name": fields.String(description="Country name"),
-        "continent": fields.String(description="Continent name", enum=VALID_CONTINENTS),
+        "continent": fields.String(
+            description="Continent name", enum=VALID_CONTINENTS
+        ),
         "capital": fields.String(description="Capital city"),
         "population": fields.Integer(description="Population count"),
-        "area_km2": fields.Float(description="Area in square kilometers"),
+        "area_km2": fields.Float(
+            description="Area in square kilometers"
+        ),
     },
 )
 
@@ -79,8 +89,12 @@ class CountriesList(Resource):
     @countries_ns.doc("create_country")
     @countries_ns.expect(country_model)
     @countries_ns.marshal_with(country_model, code=HTTPStatus.CREATED)
-    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Validation error", error_model)
-    @countries_ns.response(HTTPStatus.CONFLICT, "Country already exists", error_model)
+    @countries_ns.response(
+        HTTPStatus.BAD_REQUEST, "Validation error", error_model
+    )
+    @countries_ns.response(
+        HTTPStatus.CONFLICT, "Country already exists", error_model
+    )
     def post(self):
         """
         Create a new country
@@ -101,7 +115,8 @@ class CountriesList(Resource):
                 return country_data, HTTPStatus.CREATED
             else:
                 countries_ns.abort(
-                    HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to create country"
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to create country"
                 )
 
         except ValueError as e:
@@ -119,7 +134,9 @@ class Country(Resource):
 
     @countries_ns.doc("get_country")
     @countries_ns.marshal_with(country_model)
-    @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
+    @countries_ns.response(
+        HTTPStatus.NOT_FOUND, "Country not found", error_model
+    )
     def get(self, country_code):
         """
         Retrieve a specific country
@@ -143,8 +160,12 @@ class Country(Resource):
     @countries_ns.doc("update_country")
     @countries_ns.expect(country_update_model)
     @countries_ns.marshal_with(country_model)
-    @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
-    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Validation error", error_model)
+    @countries_ns.response(
+        HTTPStatus.NOT_FOUND, "Country not found", error_model
+    )
+    @countries_ns.response(
+        HTTPStatus.BAD_REQUEST, "Validation error", error_model
+    )
     def put(self, country_code):
         """
         Update a country
@@ -163,7 +184,9 @@ class Country(Resource):
             )
 
         try:
-            success = countries_data.update_country(country_code.upper(), update_data)
+            success = countries_data.update_country(
+                country_code.upper(), update_data
+            )
         except Exception as e:
             countries_ns.abort(
                 HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
@@ -177,7 +200,8 @@ class Country(Resource):
                 return updated_country, HTTPStatus.OK
             except Exception as e:
                 countries_ns.abort(
-                    HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    f"Database error: {str(e)}"
                 )
         else:
             countries_ns.abort(
@@ -186,10 +210,16 @@ class Country(Resource):
             )
 
     @countries_ns.doc("delete_country")
-    @countries_ns.response(HTTPStatus.NO_CONTENT, "Country deleted successfully")
-    @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
     @countries_ns.response(
-        HTTPStatus.CONFLICT, "Cannot delete country with dependent states", error_model
+        HTTPStatus.NO_CONTENT, "Country deleted successfully"
+    )
+    @countries_ns.response(
+        HTTPStatus.NOT_FOUND, "Country not found", error_model
+    )
+    @countries_ns.response(
+        HTTPStatus.CONFLICT,
+        "Cannot delete country with dependent states",
+        error_model
     )
     def delete(self, country_code):
         """
@@ -221,7 +251,9 @@ class CountriesByContinent(Resource):
 
     @countries_ns.doc("get_countries_by_continent")
     @countries_ns.marshal_list_with(country_model)
-    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Invalid continent", error_model)
+    @countries_ns.response(
+        HTTPStatus.BAD_REQUEST, "Invalid continent", error_model
+    )
     def get(self, continent_name):
         """
         Get countries by continent
@@ -263,7 +295,9 @@ class CountriesSearch(Resource):
     @countries_ns.doc("search_countries")
     @countries_ns.expect(search_parser)
     @countries_ns.marshal_list_with(country_model)
-    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Invalid search query", error_model)
+    @countries_ns.response(
+        HTTPStatus.BAD_REQUEST, "Invalid search query", error_model
+    )
     def get(self):
         """
         Search countries by name
@@ -278,11 +312,14 @@ class CountriesSearch(Resource):
         if not name_query or not name_query.strip():
             countries_ns.abort(
                 HTTPStatus.BAD_REQUEST,
-                "Search query 'name' parameter is required and cannot be " "empty",
+                "Search query 'name' parameter is required and cannot be "
+                "empty",
             )
 
         try:
-            search_results = countries_data.search_countries_by_name(name_query)
+            search_results = countries_data.search_countries_by_name(
+                name_query
+            )
             return search_results, HTTPStatus.OK
         except Exception as e:
             countries_ns.abort(
