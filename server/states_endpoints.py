@@ -156,3 +156,93 @@ class StatesList(Resource):
         except Exception as e:
             states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
                             f"Database error: {str(e)}")
+
+
+@states_ns.route('/<string:state_code>')
+@states_ns.param('state_code', 'The state code (e.g., CA, NY)')
+class State(Resource):
+    """Single state endpoint"""
+
+    @states_ns.doc('get_state')
+    @states_ns.marshal_with(state_model)
+    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
+    def get(self, state_code: str):
+        """
+        Retrieve a specific state by its code.
+        """
+        try:
+            state = states_data.get_state_by_code(state_code.upper())
+        except Exception as e:
+            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            f"Database error: {str(e)}")
+
+        if state:
+            return state, HTTPStatus.OK
+        else:
+            states_ns.abort(HTTPStatus.NOT_FOUND,
+                            f"State with code '{state_code}' not found")
+
+    @states_ns.doc('update_state')
+    @states_ns.expect(state_update_model)
+    @states_ns.marshal_with(state_model)
+    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
+    @states_ns.response(HTTPStatus.BAD_REQUEST, 'Validation err', error_model)
+    def put(self, state_code: str):
+        """
+        Update a state by its code.
+        """
+        update_data = request.json or {}
+
+        # If country_code provided, ensure it exists
+        if 'country_code' in update_data:
+            try:
+                if not countries_data.get_country_by_code(
+                        update_data['country_code'].upper()
+                ):
+                    states_ns.abort(HTTPStatus.BAD_REQUEST,
+                                    ("Provided country_code does not exist: "
+                                     f"{update_data['country_code']}"))
+            except Exception as e:
+                states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                                f"Error validating country: {str(e)}")
+
+        try:
+            success = states_data.update_state(state_code.upper(), update_data)
+        except Exception as e:
+            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            f"Database error: {str(e)}")
+
+        if success:
+            try:
+                updated = states_data.get_state_by_code(state_code.upper())
+                return updated, HTTPStatus.OK
+            except Exception as e:
+                states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                                f"Database error: {str(e)}")
+        else:
+            states_ns.abort(HTTPStatus.NOT_FOUND,
+                            f"State with code '{state_code}' not found")
+
+    @states_ns.doc('delete_state')
+    @states_ns.response(HTTPStatus.NO_CONTENT, 'State deleted successfully')
+    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
+    @states_ns.response(HTTPStatus.CONFLICT,
+                        'Cannot delete state with dependent cities',
+                        error_model)
+    def delete(self, state_code: str):
+        """
+        Delete a state by its code. Fails with 409 if dependent cities exist.
+        """
+        try:
+            success = states_data.delete_state(state_code.upper())
+        except ValueError as e:
+            states_ns.abort(HTTPStatus.CONFLICT, str(e))
+        except Exception as e:
+            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            f"Database error: {str(e)}")
+
+        if success:
+            return "", HTTPStatus.NO_CONTENT
+        else:
+            states_ns.abort(HTTPStatus.NOT_FOUND,
+                            f"State with code '{state_code}' not found")
