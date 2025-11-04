@@ -10,20 +10,20 @@ cities_ns = Namespace('cities', description='City operations')
 LAT_MIN, LAT_MAX = -90, 90
 LON_MIN, LON_MAX = -180, 180
 coordinate_model = cities_ns.model('Coordinate', {
-    'lat': fields.Float(required=True, description='Latitude',
-                        min=LAT_MIN,
-                        max=LAT_MAX,
-                        example=40.7128),
-    'lon': fields.Float(required=True, description='Longitude',
-                        min=LON_MIN,
-                        max=LON_MAX,
-                        example=-74.0060)
+    'latitude': fields.Float(required=True, description='Latitude',
+                             min=LAT_MIN,
+                             max=LAT_MAX,
+                             example=40.7128),
+    'longitude': fields.Float(required=True, description='Longitude',
+                              min=LON_MIN,
+                              max=LON_MAX,
+                              example=-74.0060)
 })
 
 city_model = cities_ns.model(
     'City',
     {
-        'name': fields.String(
+        'city_name': fields.String(
             required=True,
             description='City name',
             example='New York'),
@@ -47,6 +47,14 @@ city_model = cities_ns.model(
             description='Geographic coordinates')
     }
 )
+
+# Model for updating (key fields are not updatable)
+city_update_model = cities_ns.model('CityUpdate', {
+    'population': fields.Integer(description='Population count'),
+    'area_km2': fields.Float(description='Area in square kilometers'),
+    'coordinates': fields.Nested(coordinate_model,
+                                 description='Geographic coordinates')
+})
 
 error_model = cities_ns.model('Error', {
     'error': fields.String(description='Error message'),
@@ -113,3 +121,95 @@ class CitiesList(Resource):
         except Exception as e:
             cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
                             f"Database error: {str(e)}")
+
+
+@cities_ns.route('/<string:state_code>/<string:city_name>')
+@cities_ns.param('state_code', 'The 2-letter state code')
+@cities_ns.param('city_name', 'The name of the city')
+class City(Resource):
+    """Single city endpoint"""
+
+    @cities_ns.doc('get_city')
+    @cities_ns.marshal_with(city_model)
+    @cities_ns.response(HTTPStatus.NOT_FOUND, 'City not found',
+                        error_model)
+    def get(self, state_code, city_name):
+        """
+        Retrieve a specific city
+        Returns city details for the given state code and city name.
+        """
+        try:
+            city = cities_data.get_city_by_name_and_state(
+                city_name, state_code.upper()
+            )
+        except Exception as e:
+            cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            message=f"Database error: {str(e)}")
+
+        if city:
+            return city, HTTPStatus.OK
+        else:
+            cities_ns.abort(HTTPStatus.NOT_FOUND,
+                            message=(f"City '{city_name}' in state "
+                                     f"'{state_code}' not found"))
+
+    @cities_ns.doc('update_city')
+    @cities_ns.expect(city_update_model)
+    @cities_ns.marshal_with(city_model)
+    @cities_ns.response(HTTPStatus.NOT_FOUND, 'City not found',
+                        error_model)
+    @cities_ns.response(HTTPStatus.BAD_REQUEST, 'Validation error',
+                        error_model)
+    def put(self, state_code, city_name):
+        """
+        Update a city
+        Updates the city with the provided data.
+        """
+        update_data = request.json
+
+        try:
+            success = cities_data.update_city(
+                city_name, state_code.upper(), update_data
+            )
+        except Exception as e:
+            cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            message=f"Database error: {str(e)}")
+
+        if success:
+            try:
+                updated_city = cities_data.get_city_by_name_and_state(
+                    city_name, state_code.upper()
+                )
+                return updated_city, HTTPStatus.OK
+            except Exception as e:
+                cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                                message=f"Database error: {str(e)}")
+        else:
+            cities_ns.abort(HTTPStatus.NOT_FOUND,
+                            message=(f"City '{city_name}' in state "
+                                     f"'{state_code}' not found"))
+
+    @cities_ns.doc('delete_city')
+    @cities_ns.response(HTTPStatus.NO_CONTENT,
+                        'City deleted successfully')
+    @cities_ns.response(HTTPStatus.NOT_FOUND, 'City not found',
+                        error_model)
+    def delete(self, state_code, city_name):
+        """
+        Delete a city
+        Removes the city from the database.
+        """
+        try:
+            success = cities_data.delete_city(
+                city_name, state_code.upper()
+            )
+        except Exception as e:
+            cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            message=f"Database error: {str(e)}")
+
+        if success:
+            return '', HTTPStatus.NO_CONTENT
+        else:
+            cities_ns.abort(HTTPStatus.NOT_FOUND,
+                            message=(f"City '{city_name}' in state "
+                                     f"'{state_code}' not found"))

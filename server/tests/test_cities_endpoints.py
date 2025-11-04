@@ -3,7 +3,7 @@ Tests for cities API endpoints.
 """
 import json
 from http import HTTPStatus
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 from server.app import create_app
@@ -30,13 +30,13 @@ class TestCitiesEndpoints:
             assert resp.status_code == HTTPStatus.OK
             data = json.loads(resp.data)
             assert isinstance(data, list)
-            assert data[0]['name'] == cities_data.TEST_CITY['name']
+            assert data[0]['city_name'] == cities_data.TEST_CITY['city_name']
             mock_get.assert_called_once()
 
     def test_create_city_success(self, client):
         """POST /cities should create a city when parent state matches country."""
         sample_city = {
-            'name': 'Gotham',
+            'city_name': 'Gotham',
             'state_code': 'NY',
             'country_code': 'US',
             'population': 1000000,
@@ -44,10 +44,14 @@ class TestCitiesEndpoints:
             'coordinates': {'lat': 40.7, 'lon': -73.9},
         }
 
+        # Mock the result of a successful add
+        mock_add_result = MagicMock()
+        mock_add_result.acknowledged = True
+
         with patch('data.states.get_state_by_code') as mock_get_state, \
-             patch('data.cities.add_city') as mock_add:
+                patch('data.cities.add_city') as mock_add:
             mock_get_state.return_value = {'country_code': 'US'}
-            mock_add.return_value = True
+            mock_add.return_value = mock_add_result
 
             resp = client.post(
                 '/cities',
@@ -57,13 +61,13 @@ class TestCitiesEndpoints:
 
             assert resp.status_code == HTTPStatus.CREATED
             payload = resp.get_json()
-            assert payload['name'] == sample_city['name']
+            assert payload['city_name'] == sample_city['city_name']
             mock_add.assert_called_once()
 
     def test_create_city_parent_mismatch(self, client):
         """POST /cities should return 400 if state belongs to a different country."""
         sample_city = {
-            'name': 'Metropolis',
+            'city_name': 'Metropolis',
             'state_code': 'NY',
             'country_code': 'CA',  # mismatch with mocked state
             'coordinates': {'lat': 40.7, 'lon': -73.9},
@@ -79,3 +83,81 @@ class TestCitiesEndpoints:
             )
 
             assert resp.status_code == HTTPStatus.BAD_REQUEST
+
+    def test_get_city_by_name_and_state_success(self, client):
+        """GET /cities/<state_code>/<city_name> should return 200."""
+
+        # Use the TEST_CITY from the data layer
+        city = cities_data.TEST_CITY
+        state_code = city['state_code']
+        city_name = city['city_name']
+
+        with patch('data.cities.get_city_by_name_and_state') as mock_get:
+            mock_get.return_value = city
+
+            resp = client.get(f'/cities/{state_code}/{city_name}')
+
+            assert resp.status_code == HTTPStatus.OK
+            data = json.loads(resp.data)
+            assert data['city_name'] == city_name
+            mock_get.assert_called_once_with(city_name, state_code)
+
+    def test_get_city_by_name_and_state_not_found(self, client):
+        """GET /cities/<state_code>/<city_name> should return 404."""
+        with patch('data.cities.get_city_by_name_and_state') as mock_get:
+            mock_get.return_value = None
+
+            resp = client.get('/cities/XX/FakeCity')
+
+            assert resp.status_code == HTTPStatus.NOT_FOUND
+
+    def test_update_city_success(self, client):
+        """PUT /cities/<state_code>/<city_name> should return 200."""
+        city = cities_data.TEST_CITY
+        state_code = city['state_code']
+        city_name = city['city_name']
+
+        update_data = {'population': 5000}
+        updated_city_doc = {**city, **update_data}
+
+        with patch('data.cities.update_city') as mock_update, \
+                patch('data.cities.get_city_by_name_and_state') as mock_get:
+
+            mock_update.return_value = True
+            mock_get.return_value = updated_city_doc
+
+            resp = client.put(
+                f'/cities/{state_code}/{city_name}',
+                data=json.dumps(update_data),
+                content_type='application/json'
+            )
+
+            assert resp.status_code == HTTPStatus.OK
+            data = json.loads(resp.data)
+            assert data['population'] == 5000
+            mock_update.assert_called_once_with(
+                city_name, state_code, update_data
+            )
+
+    def test_delete_city_success(self, client):
+        """DELETE /cities/<state_code>/<city_name> should return 204."""
+        city = cities_data.TEST_CITY
+        state_code = city['state_code']
+        city_name = city['city_name']
+
+        with patch('data.cities.delete_city') as mock_delete:
+            mock_delete.return_value = True
+
+            resp = client.delete(f'/cities/{state_code}/{city_name}')
+
+            assert resp.status_code == HTTPStatus.NO_CONTENT
+            mock_delete.assert_called_once_with(city_name, state_code)
+
+    def test_delete_city_not_found(self, client):
+        """DELETE /cities/<state_code>/<city_name> should return 404."""
+        with patch('data.cities.delete_city') as mock_delete:
+            mock_delete.return_value = False
+
+            resp = client.delete('/cities/XX/FakeCity')
+
+            assert resp.status_code == HTTPStatus.NOT_FOUND
