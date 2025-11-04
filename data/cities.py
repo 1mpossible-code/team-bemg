@@ -7,14 +7,14 @@ from data.utils import sanitize_string, sanitize_code
 
 CITIES_COLLECT = 'cities'
 
-CITY_NAME = 'name'
+CITY_NAME = 'city_name'
 COUNTRY_CODE = 'country_code'
 STATE_CODE = 'state_code'
 POPULATION = 'population'
 AREA_KM2 = 'area_km2'
 COORDINATES = 'coordinates'
-LATITUDE = 'lat'
-LONGITUDE = 'lon'
+LATITUDE = 'latitude'
+LONGITUDE = 'longitude'
 
 REQUIRED_FIELDS = [CITY_NAME, COUNTRY_CODE]
 OPTIONAL_FIELDS = [STATE_CODE, POPULATION, AREA_KM2, COORDINATES]
