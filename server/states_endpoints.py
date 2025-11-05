@@ -246,3 +246,28 @@ class State(Resource):
         else:
             states_ns.abort(HTTPStatus.NOT_FOUND,
                             f"State with code '{state_code}' not found")
+
+
+@states_ns.route('/<string:state_name>')
+@states_ns.param('state_name', 'The state name (e.g., California, New York)')
+class State(Resource):
+    """Single state by name endpoint"""
+
+    @states_ns.doc('get_state_by_name')
+    @states_ns.marshal_with(state_model)
+    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
+    def get(self, state_name: str):
+        """
+        Retrieve a specific state by its name.
+        """
+        try:
+            state = states_data.get_state_by_name(state_name)
+        except Exception as e:
+            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            f"Database error: {str(e)}")
+
+        if state:
+            return state, HTTPStatus.OK
+        else:
+            states_ns.abort(HTTPStatus.NOT_FOUND,
+                            f"State with name '{state_name}' not found")
