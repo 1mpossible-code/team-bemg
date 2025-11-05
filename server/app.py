@@ -36,9 +36,9 @@ def create_app():
     @app.route("/readyz")
     def readyz():
         try:
-            # Ensure client is initialized, then ping
-            db_connect.connect_db()
-            db_connect.client.admin.command("ping")
+            # Ensure client is initialized, then ping using the returned client
+            client = db_connect.connect_db()
+            client.admin.command("ping")
             return {"status": "ok"}
         except Exception as exc:
             return {"status": "error", "detail": str(exc)}, 500
