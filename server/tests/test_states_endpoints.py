@@ -138,3 +138,39 @@ class TestStatesEndpoints:
             assert resp.status_code == HTTPStatus.CONFLICT
             data = resp.get_json()
             assert 'depend' in data['message'].lower()
+
+    def test_get_state_by_name_success(self, client):
+        """Test successful retrieval of state by name."""
+        with patch('data.states.get_state_by_name') as mock_get:
+            mock_get.return_value = states_data.TEST_STATE
+
+            resp = client.get('/states/name/New York')
+
+            assert resp.status_code == HTTPStatus.OK
+            data = resp.get_json()
+            assert data['state_name'] == states_data.TEST_STATE['state_name']
+            assert data['state_code'] == states_data.TEST_STATE['state_code']
+            mock_get.assert_called_once_with('New York')
+
+    def test_get_state_by_name_not_found(self, client):
+        """Test 404 when state name doesn't exist."""
+        with patch('data.states.get_state_by_name') as mock_get:
+            mock_get.return_value = None
+
+            resp = client.get('/states/name/NonExistentState')
+
+            assert resp.status_code == HTTPStatus.NOT_FOUND
+            data = resp.get_json()
+            assert 'not found' in data['message'].lower()
+            mock_get.assert_called_once_with('NonExistentState')
+
+    def test_get_state_by_name_database_error(self, client):
+        """Test 500 when database error occurs."""
+        with patch('data.states.get_state_by_name') as mock_get:
+            mock_get.side_effect = Exception('Database connection failed')
+
+            resp = client.get('/states/name/New York')
+
+            assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+            data = resp.get_json()
+            assert 'error' in data or 'Database' in data.get('message', '')

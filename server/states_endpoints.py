@@ -248,9 +248,9 @@ class State(Resource):
                             f"State with code '{state_code}' not found")
 
 
-@states_ns.route('/<string:state_name>')
+@states_ns.route('/name/<string:state_name>')
 @states_ns.param('state_name', 'The state name (e.g., California, New York)')
-class State(Resource):
+class StateByName(Resource):
     """Single state by name endpoint"""
 
     @states_ns.doc('get_state_by_name')
