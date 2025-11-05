@@ -7,7 +7,8 @@ from data import db_connect
 
 def create_app():
     app = Flask(__name__)
-    client = db_connect.connect_db()
+    # Connection will be established automatically by @ensure_connection
+    # when database operations are first used.
 
     CORS(app)
     api = Api(
@@ -35,8 +36,9 @@ def create_app():
     @app.route("/readyz")
     def readyz():
         try:
-            # Cheap connectivity check; does not require auth
-            client.admin.command("ping")
+            # Ensure client is initialized, then ping
+            db_connect.connect_db()
+            db_connect.client.admin.command("ping")
             return {"status": "ok"}
         except Exception as exc:
             return {"status": "error", "detail": str(exc)}, 500

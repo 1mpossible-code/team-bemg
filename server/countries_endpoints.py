@@ -47,7 +47,7 @@ country_model = countries_ns.model(
 country_update_model = countries_ns.model(
     "CountryUpdate",
     {
-        "name": fields.String(description="Country name"),
+        "country_name": fields.String(description="Country name"),
         "continent": fields.String(
             description="Continent name", enum=VALID_CONTINENTS
         ),
