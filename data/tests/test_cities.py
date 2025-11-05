@@ -198,7 +198,7 @@ class TestCities:
     def test_add_city_missing_city_name(self):
         """Test adding a city without city name raises ValueError."""
         city_no_name = {cities.COUNTRY_CODE: 'US'}
-        with pytest.raises(ValueError, match="Missing required field: name"):
+        with pytest.raises(ValueError, match="Missing required field: city_name"):
             cities.add_city(city_no_name)
 
     def test_add_city_missing_country_code(self):
