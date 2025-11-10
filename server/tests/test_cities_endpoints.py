@@ -19,7 +19,7 @@ class TestCitiesEndpoints:
         app.config['TESTING'] = True
         with app.test_client() as client:
             yield client
-    
+
     @pytest.fixture
     def sample_city(self):
         """Sample city data for testing."""
@@ -115,7 +115,18 @@ class TestCitiesEndpoints:
             resp = client.get('/cities/XX/FakeCity')
 
             assert resp.status_code == HTTPStatus.NOT_FOUND
-    
+
+    def test_get_cities_filter_by_name(self, client, sample_city):
+        """Test GET /cities?name=New"""
+        with patch('data.cities.get_cities_by_name') as mock_get:
+            mock_get.return_value = [sample_city]
+
+            # Search for "New" (should match "New York")
+            response = client.get('/cities?name=New')
+
+            assert response.status_code == HTTPStatus.OK
+            mock_get.assert_called_with('New')
+
     def test_get_cities_filter_by_state(self, client, sample_city):
         """Test GET /cities?state_code=NY"""
         with patch('data.cities.get_cities_by_state') as mock_get:

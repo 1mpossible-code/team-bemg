@@ -22,6 +22,8 @@ coordinate_model = cities_ns.model('Coordinate', {
 
 # Parser for query parameters
 list_parser = reqparse.RequestParser()
+list_parser.add_argument('name', type=str, required=False,
+                         help='Search cities by name (partial match)')
 list_parser.add_argument('country_code', type=str, required=False,
                          help='Filter by country code')
 list_parser.add_argument('state_code', type=str, required=False,
@@ -30,6 +32,16 @@ list_parser.add_argument('min_population', type=int, required=False,
                          help='Filter by minimum population')
 list_parser.add_argument('max_population', type=int, required=False,
                          help='Filter by maximum population')
+list_parser.add_argument(
+    'country_code',
+    type=str,
+    required=False,
+    help='Filter by country code')
+list_parser.add_argument(
+    'state_code',
+    type=str,
+    required=False,
+    help='Filter by state code')
 
 city_model = cities_ns.model(
     'City',
@@ -81,13 +93,17 @@ class CitiesList(Resource):
     @cities_ns.marshal_list_with(city_model)
     def get(self):
         args = list_parser.parse_args()
+        name_query = args.get('name')
         country_code = args.get('country_code')
         state_code = args.get('state_code')
         min_pop = args.get('min_population')
         max_pop = args.get('max_population')
 
         try:
-            if country_code:
+            if name_query:
+                return cities_data.get_cities_by_name(
+                    name_query), HTTPStatus.OK
+            elif country_code:
                 return cities_data.get_cities_by_country(
                     country_code), HTTPStatus.OK
             elif state_code:
