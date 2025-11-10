@@ -1,5 +1,5 @@
 from flask import request
-from flask_restx import Resource, fields, Namespace
+from flask_restx import Resource, fields, Namespace, reqparse
 from http import HTTPStatus
 import data.cities as cities_data
 import data.states as states_data
@@ -19,6 +19,17 @@ coordinate_model = cities_ns.model('Coordinate', {
                               max=LON_MAX,
                               example=-74.0060)
 })
+
+# Parser for query parameters
+list_parser = reqparse.RequestParser()
+list_parser.add_argument('country_code', type=str, required=False,
+                         help='Filter by country code')
+list_parser.add_argument('state_code', type=str, required=False,
+                         help='Filter by state code')
+list_parser.add_argument('min_population', type=int, required=False,
+                         help='Filter by minimum population')
+list_parser.add_argument('max_population', type=int, required=False,
+                         help='Filter by maximum population')
 
 city_model = cities_ns.model(
     'City',
@@ -66,13 +77,30 @@ error_model = cities_ns.model('Error', {
 class CitiesList(Resource):
 
     @cities_ns.doc('list_cities')
+    @cities_ns.expect(list_parser)
     @cities_ns.marshal_list_with(city_model)
     def get(self):
+        args = list_parser.parse_args()
+        country_code = args.get('country_code')
+        state_code = args.get('state_code')
+        min_pop = args.get('min_population')
+        max_pop = args.get('max_population')
+
         try:
-            return cities_data.get_cities(), HTTPStatus.OK
+            if country_code:
+                return cities_data.get_cities_by_country(
+                    country_code), HTTPStatus.OK
+            elif state_code:
+                return cities_data.get_cities_by_state(
+                    state_code), HTTPStatus.OK
+            elif min_pop is not None or max_pop is not None:
+                return cities_data.get_cities_by_population_range(
+                    min_pop, max_pop), HTTPStatus.OK
+            else:
+                return cities_data.get_cities(), HTTPStatus.OK
         except Exception as e:
             cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+                            message=f"Database error: {str(e)}")
 
     @cities_ns.doc('create_city')
     @cities_ns.expect(city_model)

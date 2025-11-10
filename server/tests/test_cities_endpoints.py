@@ -19,6 +19,11 @@ class TestCitiesEndpoints:
         app.config['TESTING'] = True
         with app.test_client() as client:
             yield client
+    
+    @pytest.fixture
+    def sample_city(self):
+        """Sample city data for testing."""
+        return cities_data.TEST_CITY.copy()
 
     def test_get_all_cities_success(self, client):
         """GET /cities should return 200 and a list of cities."""
@@ -110,6 +115,22 @@ class TestCitiesEndpoints:
             resp = client.get('/cities/XX/FakeCity')
 
             assert resp.status_code == HTTPStatus.NOT_FOUND
+    
+    def test_get_cities_filter_by_state(self, client, sample_city):
+        """Test GET /cities?state_code=NY"""
+        with patch('data.cities.get_cities_by_state') as mock_get:
+            mock_get.return_value = [sample_city]
+            response = client.get('/cities?state_code=NY')
+            assert response.status_code == HTTPStatus.OK
+            mock_get.assert_called_with('NY')
+
+    def test_get_cities_filter_by_population(self, client, sample_city):
+        """Test GET /cities?min_population=1000"""
+        with patch('data.cities.get_cities_by_population_range') as mock_get:
+            mock_get.return_value = [sample_city]
+            response = client.get('/cities?min_population=1000')
+            assert response.status_code == HTTPStatus.OK
+            mock_get.assert_called_with(1000, None)
 
     def test_update_city_success(self, client):
         """PUT /cities/<state_code>/<city_name> should return 200."""
