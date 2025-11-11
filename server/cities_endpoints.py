@@ -32,16 +32,6 @@ list_parser.add_argument('min_population', type=int, required=False,
                          help='Filter by minimum population')
 list_parser.add_argument('max_population', type=int, required=False,
                          help='Filter by maximum population')
-list_parser.add_argument(
-    'country_code',
-    type=str,
-    required=False,
-    help='Filter by country code')
-list_parser.add_argument(
-    'state_code',
-    type=str,
-    required=False,
-    help='Filter by state code')
 
 city_model = cities_ns.model(
     'City',
@@ -105,10 +95,10 @@ class CitiesList(Resource):
                     name_query), HTTPStatus.OK
             elif country_code:
                 return cities_data.get_cities_by_country(
-                    country_code), HTTPStatus.OK
+                    country_code.upper()), HTTPStatus.OK
             elif state_code:
                 return cities_data.get_cities_by_state(
-                    state_code), HTTPStatus.OK
+                    state_code.upper()), HTTPStatus.OK
             elif min_pop is not None or max_pop is not None:
                 return cities_data.get_cities_by_population_range(
                     min_pop, max_pop), HTTPStatus.OK
