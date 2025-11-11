@@ -156,6 +156,34 @@ class TestCitiesEndpoints:
         with patch('data.cities.get_cities_by_country', side_effect=Exception('boom')):
             resp = client.get('/cities?country_code=US')
             assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def test_get_cities_by_country_endpoint_success(self, client, sample_city):
+        """GET /cities/country/US returns 200 and calls data function."""
+        with patch('data.cities.get_cities_by_country') as mock_get:
+            mock_get.return_value = [sample_city]
+            resp = client.get('/cities/country/US')
+            assert resp.status_code == HTTPStatus.OK
+            mock_get.assert_called_once_with('US')
+
+    def test_get_cities_by_country_endpoint_db_error(self, client):
+        """GET /cities/country/US returns 500 on DB error."""
+        with patch('data.cities.get_cities_by_country', side_effect=Exception('db error')):
+            resp = client.get('/cities/country/US')
+            assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def test_get_cities_by_state_endpoint_success(self, client, sample_city):
+        """GET /cities/state/NY returns 200 and calls data function."""
+        with patch('data.cities.get_cities_by_state') as mock_get:
+            mock_get.return_value = [sample_city]
+            resp = client.get('/cities/state/NY')
+            assert resp.status_code == HTTPStatus.OK
+            mock_get.assert_called_once_with('NY')
+
+    def test_get_cities_by_state_endpoint_db_error(self, client):
+        """GET /cities/state/NY returns 500 on DB error."""
+        with patch('data.cities.get_cities_by_state', side_effect=Exception('db error')):
+            resp = client.get('/cities/state/NY')
+            assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     def test_update_city_success(self, client):
         """PUT /cities/<state_code>/<city_name> should return 200."""
         city = cities_data.TEST_CITY

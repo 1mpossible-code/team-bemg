@@ -156,6 +156,43 @@ class CitiesList(Resource):
             cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
                             f"Database error: {str(e)}")
 
+@cities_ns.route('/country/<string:country_code>')
+@cities_ns.param('country_code', 'The country code')
+class CitiesByCountry(Resource):
+    """Cities filtered by country"""
+
+    @cities_ns.doc('get_cities_by_country')
+    @cities_ns.marshal_list_with(city_model)
+    def get(self, country_code):
+        """
+        Get cities by country code.
+        """
+        try:
+            cities = cities_data.get_cities_by_country(country_code.upper())
+            return cities, HTTPStatus.OK
+        except Exception as e:
+            cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            message=f"Database error: {str(e)}")
+
+
+@cities_ns.route('/state/<string:state_code>')
+@cities_ns.param('state_code', 'The state code (2 letters)')
+class CitiesByState(Resource):
+    """Cities filtered by state"""
+
+    @cities_ns.doc('get_cities_by_state')
+    @cities_ns.marshal_list_with(city_model)
+    def get(self, state_code):
+        """
+        Get cities by state code.
+        """
+        try:
+            cities = cities_data.get_cities_by_state(state_code.upper())
+            return cities, HTTPStatus.OK
+        except Exception as e:
+            cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            message=f"Database error: {str(e)}")
+
 
 @cities_ns.route('/<string:state_code>/<string:city_name>')
 @cities_ns.param('state_code', 'The 2-letter state code')
