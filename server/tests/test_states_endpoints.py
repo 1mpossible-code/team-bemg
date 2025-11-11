@@ -43,6 +43,31 @@ class TestStatesEndpoints:
             assert data[0]['state_code'] == states_data.TEST_STATE['state_code']
             mock_get.assert_called_once()
 
+    def test_get_states_by_country_success(self, client):
+        """GET /states/country/<code> returns filtered list."""
+        with patch('data.states.get_states_by_country') as mock_get:
+            mock_get.return_value = [states_data.TEST_STATE]
+
+            resp = client.get('/states/country/US')
+
+            assert resp.status_code == HTTPStatus.OK
+            data = resp.get_json()
+            assert isinstance(data, list)
+            assert data[0]['country_code'] == 'US'
+            mock_get.assert_called_once_with('US')
+
+    def test_get_states_by_country_db_error(self, client):
+        """GET /states/country/<code> handles DB errors with 500."""
+        with patch('data.states.get_states_by_country') as mock_get:
+            mock_get.side_effect = Exception('DB fail')
+
+            resp = client.get('/states/country/US')
+
+            assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+            data = resp.get_json()
+            # message may vary; ensure we echoed error context
+            assert 'error' in data.get('message', '').lower() or 'db fail' in str(data)
+
     def test_create_state_success(self, client, sample_state):
         with patch('data.countries.get_country_by_code') as mock_get_country, \
              patch('data.states.add_state') as mock_add:
