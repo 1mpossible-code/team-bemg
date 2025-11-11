@@ -156,6 +156,7 @@ class CitiesList(Resource):
             cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
                             f"Database error: {str(e)}")
 
+
 @cities_ns.route('/country/<string:country_code>')
 @cities_ns.param('country_code', 'The country code')
 class CitiesByCountry(Resource):
