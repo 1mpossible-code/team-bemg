@@ -7,6 +7,7 @@ from flask import request
 from flask_restx import Resource, fields, Namespace, reqparse
 from http import HTTPStatus
 import data.countries as countries_data
+import data.states as states_data
 from data.countries import VALID_CONTINENTS
 
 # Create namespace for countries endpoints
@@ -237,6 +238,30 @@ class Country(Resource):
 
         if success:
             return "", HTTPStatus.NO_CONTENT
+        else:
+            countries_ns.abort(
+                HTTPStatus.NOT_FOUND,
+                f"Country with code '{country_code}' " f"not found",
+            )
+
+    @countries_ns.doc("get_states_in_country")
+    @countries_ns.marshal_with(country_model)
+    @countries_ns.response(
+        HTTPStatus.NOT_FOUND, "Couldn't find states in country", error_model
+    )
+    def get_states_in_country(self, country_code):
+        """
+        Retrieve a specific country
+        Returns states in the given country.
+        """
+        try:
+            country = countries_data.get_country_by_code(country_code.upper())
+        except Exception as e:
+            countries_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
+        if country:
+            return states_data.get_states_by_country(country_code.upper()), HTTPStatus.OK
         else:
             countries_ns.abort(
                 HTTPStatus.NOT_FOUND,
