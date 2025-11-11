@@ -64,19 +64,19 @@ list_parser.add_argument(
     'country_code',
     type=str,
     required=False,
-    help='Filter states by country code (ISO 3166-1 alpha-2)',
+    help='Filter states by country code (ISO 3166-1 alpha-2), e.g., US',
     location='args')
 list_parser.add_argument(
     'min_population',
     type=int,
     required=False,
-    help='Filter states with population >= min_population',
+    help='Filter states with population >= min_population (e.g., 1000000)',
     location='args')
 list_parser.add_argument(
     'max_population',
     type=int,
     required=False,
-    help='Filter states with population <= max_population',
+    help='Filter states with population <= max_population (e.g., 5000000)',
     location='args')
 
 
@@ -246,6 +246,26 @@ class State(Resource):
         else:
             states_ns.abort(HTTPStatus.NOT_FOUND,
                             f"State with code '{state_code}' not found")
+
+
+@states_ns.route('/country/<string:country_code>')
+@states_ns.param('country_code', 'The country code (ISO 3166-1), e.g., US')
+class StatesByCountry(Resource):
+    """List states by country code (convenience endpoint)."""
+
+    @states_ns.doc('get_states_by_country')
+    @states_ns.marshal_list_with(state_model)
+    def get(self, country_code: str):
+        """
+        Retrieve all states for a specific country.
+        Equivalent to GET /states?country_code=<code>.
+        """
+        try:
+            return (states_data.get_states_by_country(country_code.upper()),
+                    HTTPStatus.OK)
+        except Exception as e:
+            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            f"Database error: {str(e)}")
 
 
 @states_ns.route('/name/<string:state_name>')
