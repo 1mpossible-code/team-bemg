@@ -9,6 +9,7 @@ from http import HTTPStatus
 import data.countries as countries_data
 import data.states as states_data
 from data.countries import VALID_CONTINENTS
+from server.states_endpoints import state_model
 
 # Create namespace for countries endpoints
 countries_ns = Namespace("countries", description="Country operations")
@@ -128,6 +129,38 @@ class CountriesList(Resource):
             )
 
 
+@countries_ns.route("/<string:country_code>/states")
+@countries_ns.param("country_code", "The country code (ISO 3166-1 alpha-2)")
+class StatesInCountry(Resource):
+    """States within a country endpoint"""
+
+    @countries_ns.doc("get_states_in_country")
+    @countries_ns.marshal_list_with(state_model)
+    @countries_ns.response(
+        HTTPStatus.NOT_FOUND, "Couldn't find states in country", error_model
+    )
+    def get(self, country_code):
+        """
+        Retrieve states in a country
+        Returns states in the given country.
+        """
+        try:
+            country = countries_data.get_country_by_code(country_code.upper())
+        except Exception as e:
+            countries_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
+        if country:
+            country_code = country_code.upper()
+            country_states = states_data.get_states_by_country(country_code)
+            return country_states, HTTPStatus.OK
+        else:
+            countries_ns.abort(
+                HTTPStatus.NOT_FOUND,
+                f"Country with code '{country_code}' " f"not found",
+            )
+
+
 @countries_ns.route("/<string:country_code>")
 @countries_ns.param("country_code", "The country code (ISO 3166-1 alpha-2)")
 class Country(Resource):
@@ -238,30 +271,6 @@ class Country(Resource):
 
         if success:
             return "", HTTPStatus.NO_CONTENT
-        else:
-            countries_ns.abort(
-                HTTPStatus.NOT_FOUND,
-                f"Country with code '{country_code}' " f"not found",
-            )
-
-    @countries_ns.doc("get_states_in_country")
-    @countries_ns.marshal_with(country_model)
-    @countries_ns.response(
-        HTTPStatus.NOT_FOUND, "Couldn't find states in country", error_model
-    )
-    def get_states_in_country(self, country_code):
-        """
-        Retrieve a specific country
-        Returns states in the given country.
-        """
-        try:
-            country = countries_data.get_country_by_code(country_code.upper())
-        except Exception as e:
-            countries_ns.abort(
-                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
-            )
-        if country:
-            return states_data.get_states_by_country(country_code.upper()), HTTPStatus.OK
         else:
             countries_ns.abort(
                 HTTPStatus.NOT_FOUND,

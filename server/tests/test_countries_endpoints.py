@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 from http import HTTPStatus
 from server.app import create_app
 from data import countries
-
+import data.states as states
 
 class TestCountriesEndpoints:
     """Test class for countries API endpoints."""
@@ -31,6 +31,24 @@ class TestCountriesEndpoints:
             'population': 1000000,
             'area_km2': 50000.0
         }
+
+    def test_get_states_in_country(self, client):
+        """Test successful retrieval of states in a country."""
+        # Arrange
+        with patch('data.countries.get_country_by_code') as mock_get_country, \
+             patch('data.states.get_states_by_country') as mock_get:
+            mock_get_country.return_value = countries.TEST_COUNTRY
+            mock_get.return_value = [states.TEST_STATE]
+
+            # Act 
+            response = client.get(f'/countries/{countries.TEST_COUNTRY[countries.COUNTRY_CODE]}/states')
+
+            # Assert 
+            assert response.status_code == HTTPStatus.OK
+            data = json.loads(response.data)
+            assert data == [states.TEST_STATE]
+            mock_get_country.assert_called_once_with(countries.TEST_COUNTRY[countries.COUNTRY_CODE])
+            mock_get.assert_called_once_with(countries.TEST_COUNTRY[countries.COUNTRY_CODE])
 
     def test_get_all_countries_success(self, client):
         """Test successful retrieval of all countries."""
