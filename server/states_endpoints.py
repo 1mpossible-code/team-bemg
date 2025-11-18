@@ -8,6 +8,8 @@ from flask_restx import Resource, fields, Namespace, reqparse
 from http import HTTPStatus
 import data.states as states_data
 import data.countries as countries_data
+import data.cities as cities_data
+from server.cities_endpoints import city_model
 from data.models import states_validator
 
 # Create namespace for states endpoints
@@ -262,6 +264,26 @@ class StatesByCountry(Resource):
         """
         try:
             return (states_data.get_states_by_country(country_code.upper()),
+                    HTTPStatus.OK)
+        except Exception as e:
+            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
+                            f"Database error: {str(e)}")
+
+
+@states_ns.route('/<string:state_code>/cities')
+@states_ns.param('state_code', 'The state code (e.g., CA, NY)')
+class StateCities(Resource):
+    """List cities within a state (convenience endpoint)."""
+
+    @states_ns.doc('get_state_cities')
+    @states_ns.marshal_list_with(city_model)
+    def get(self, state_code: str):
+        """
+        Retrieve all cities for a specific state.
+        Equivalent to GET /cities?state_code=<code>.
+        """
+        try:
+            return (cities_data.get_cities_by_state(state_code.upper()),
                     HTTPStatus.OK)
         except Exception as e:
             states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,

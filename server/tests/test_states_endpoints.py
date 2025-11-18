@@ -199,3 +199,27 @@ class TestStatesEndpoints:
             assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
             data = resp.get_json()
             assert 'error' in data or 'Database' in data.get('message', '')
+
+    def test_get_cities_in_state_success(self, client):
+        """GET /states/{state_code}/cities returns cities in a state."""
+        with patch('data.cities.get_cities_by_state') as mock_get:
+            mock_get.return_value = [{'city_name': 'Albany', 'state_code': 'NY', 'country_code': 'US'}]
+
+            resp = client.get('/states/NY/cities')
+
+            assert resp.status_code == HTTPStatus.OK
+            data = resp.get_json()
+            assert isinstance(data, list)
+            assert data[0]['state_code'] == 'NY'
+            mock_get.assert_called_once_with('NY')
+
+    def test_get_cities_in_state_db_error(self, client):
+        """GET /states/{state_code}/cities returns 500 on DB error."""
+        with patch('data.cities.get_cities_by_state') as mock_get:
+            mock_get.side_effect = Exception('DB fail')
+
+            resp = client.get('/states/NY/cities')
+
+            assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+            data = resp.get_json()
+            assert 'error' in data.get('message', '').lower() or 'db fail' in str(data)
