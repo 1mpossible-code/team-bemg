@@ -45,6 +45,8 @@ countries_validator = {
                 "bsonType": ["double", "int", "long", "decimal"],
                 "minimum": 0,
             },
+            "created_at": {"bsonType": ["date"], "description": "Creation timestamp"},
+            "updated_at": {"bsonType": ["date"], "description": "Last update timestamp"},
         },
     }
 }
@@ -72,6 +74,8 @@ states_validator = {
                 "bsonType": ["double", "int", "long", "decimal"],
                 "minimum": 0,
             },
+            "created_at": {"bsonType": ["date"], "description": "Creation timestamp"},
+            "updated_at": {"bsonType": ["date"], "description": "Last update timestamp"},
         },
     }
 }
@@ -115,6 +119,8 @@ cities_validator = {
                     },
                 },
             },
+            "created_at": {"bsonType": ["date"], "description": "Creation timestamp"},
+            "updated_at": {"bsonType": ["date"], "description": "Last update timestamp"},
         },
     }
 }

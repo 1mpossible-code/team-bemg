@@ -4,6 +4,7 @@ All city-related database operations should go through this module.
 """
 import data.db_connect as dbc
 from data.utils import sanitize_string, sanitize_code
+from datetime import datetime
 
 CITIES_COLLECT = 'cities'
 
@@ -135,6 +136,11 @@ def add_city(city_data: dict) -> bool:
                     city_data[CITY_NAME]}' already exists in country '{
                     city_data[COUNTRY_CODE]}'")
 
+    # Timestamps
+    now = datetime.utcnow()
+    city_data['created_at'] = now
+    city_data['updated_at'] = now
+
     result = dbc.create(CITIES_COLLECT, city_data)
     return result.acknowledged
 
@@ -156,6 +162,9 @@ def update_city(name: str, state_code: str, update_data: dict) -> bool:
         del update_data[CITY_NAME]
     if STATE_CODE in update_data:
         del update_data[STATE_CODE]
+    # Set updated_at timestamp
+    from datetime import datetime as _dt
+    update_data['updated_at'] = _dt.utcnow()
 
     result = dbc.update(
         CITIES_COLLECT, {

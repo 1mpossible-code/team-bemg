@@ -109,7 +109,17 @@ class TestCountries:
             
             result = countries.add_country(countries.TEST_COUNTRY)
             assert result is True
-            mock_create.assert_called_once_with(countries.COUNTRIES_COLLECT, countries.TEST_COUNTRY)
+            # ensure create was called and timestamps were added to payload
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args[0]
+            assert call_args[0] == countries.COUNTRIES_COLLECT
+            passed_doc = call_args[1]
+            assert passed_doc[countries.COUNTRY_CODE] == countries.TEST_COUNTRY[countries.COUNTRY_CODE]
+            assert 'created_at' in passed_doc and 'updated_at' in passed_doc
+            # created_at/updated_at should be datetime instances
+            import datetime as _dt
+            assert isinstance(passed_doc['created_at'], _dt.datetime)
+            assert isinstance(passed_doc['updated_at'], _dt.datetime)
 
     def test_add_country_missing_required_field(self):
         """Test adding a country with missing required field."""

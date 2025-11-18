@@ -5,6 +5,7 @@ All country-related database operations should go through this module
 
 import data.db_connect as dbc
 from data.utils import sanitize_string, sanitize_code
+from datetime import datetime
 
 COUNTRIES_COLLECT = 'countries'
 
@@ -139,6 +140,11 @@ def add_country(country_data: dict) -> bool:
     if get_country_by_code(country_data[COUNTRY_CODE]):
         raise ValueError(f"Country with code {country_data[COUNTRY_CODE]} already exists")
     
+    # Timestamps
+    now = datetime.utcnow()
+    country_data['created_at'] = now
+    country_data['updated_at'] = now
+
     result = dbc.create(COUNTRIES_COLLECT, country_data)
     return result.acknowledged
 
@@ -161,7 +167,11 @@ def update_country(code: str, update_data: dict) -> bool:
     
     if COUNTRY_CODE in update_data:
         del update_data[COUNTRY_CODE]
-    
+
+    # Set updated_at timestamp
+    from datetime import datetime as _dt
+    update_data['updated_at'] = _dt.utcnow()
+
     result = dbc.update(COUNTRIES_COLLECT, {COUNTRY_CODE: code}, update_data)
     return result.modified_count > 0
 

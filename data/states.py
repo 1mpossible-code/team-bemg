@@ -4,6 +4,7 @@ All state-related database operations should go through this module.
 """
 import data.db_connect as dbc
 from data.utils import sanitize_string, sanitize_code
+from datetime import datetime
 
 STATES_COLLECT = 'states'
 
@@ -100,6 +101,11 @@ def add_state(state_data: dict) -> bool:
     if get_state_by_code(state_data[STATE_CODE]):
         raise ValueError(f"State with code {state_data[STATE_CODE]} already exists")
     
+    # Timestamps
+    now = datetime.utcnow()
+    state_data['created_at'] = now
+    state_data['updated_at'] = now
+
     result = dbc.create(STATES_COLLECT, state_data)
     return result.acknowledged
 
@@ -122,6 +128,9 @@ def update_state(code: str, update_data: dict) -> bool:
     
     if STATE_CODE in update_data:
         del update_data[STATE_CODE]
+    # Set updated_at timestamp
+    from datetime import datetime as _dt
+    update_data['updated_at'] = _dt.utcnow()
 
     result = dbc.update(STATES_COLLECT, {STATE_CODE: code}, update_data)
     return result.modified_count > 0
