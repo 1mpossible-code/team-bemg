@@ -38,8 +38,17 @@ def connect_db():
                                     + '@koukoumongo1.yud9b.mongodb.net/'
                                     + '?retryWrites=true&w=majority')
         else:
-            print("Connecting to Mongo locally.")
-            client = pm.MongoClient()
+            mongo_uri = os.environ.get('MONGO_URI')
+            if mongo_uri:
+                redacted = mongo_uri
+                if '@' in mongo_uri:
+                    redacted = mongo_uri.split('@')[-1]
+                print(f"Connecting to Mongo locally using custom URI: "
+                      f"{redacted}")
+                client = pm.MongoClient(mongo_uri)
+            else:
+                print("Connecting to Mongo locally on mongodb://localhost:27017.")
+                client = pm.MongoClient("mongodb://localhost:27017")
     return client
 
 

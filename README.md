@@ -50,6 +50,10 @@ export MONGO_PASSWD=<your_password>
 export MONGO_URI='mongodb://<user>:<pass>@localhost:27017/?authSource=admin'
 ```
 
+## Seed Mongo with sample data
+
+Follow `docs/LocalMongoTesting.md` to run MongoDB in Docker, import a lightweight slice of the [Countries States Cities Database](https://github.com/dr5hn/countries-states-cities-database/tree/master), and try the CRUD endpoints end-to-end.
+
 ## Common issues
 - Module import errors (e.g., `No module named server`): run commands from the repo root or set `PYTHONPATH=.`
 - Wheel/architecture mismatch on macOS: recreate the virtualenv with your native Python and reinstall deps (see troubleshooting in PRs or ask a teammate).
