@@ -66,13 +66,13 @@ We want US data every time, so slice the files with `jq` (bash) or `ConvertFrom-
 # Countries: include US plus the first 25 records
 jq '([.[] | select(.iso2 == "US")] + .[:25]) | unique_by(.iso2)' \
     countries.json > countries.sample.json
-# States: include all US states plus 50 generic entries
+# States: include 100 US states plus 50 generic entries (dedupe by iso2)
 jq '([.[] | select(.country_code == "US")] | .[:100]) + (.[:50])
-    | unique_by(.state_code)' \
+    | unique_by(.iso2)' \
     states.json > states.sample.json
-# Cities: include 100 US cities plus 100 generic entries
+# Cities: include 100 US cities plus 100 generic entries (keep state_code per data/cities.py)
 jq '([.[] | select(.country_code == "US")] | .[:100]) + (.[:100])
-    | unique_by({name, state_code})' \
+    | unique_by({country_code, state_code, name})' \
     cities.json > cities.sample.json
 ```
 
@@ -87,7 +87,7 @@ $countries = Get-Content countries.json | ConvertFrom-Json
 $states = Get-Content states.json | ConvertFrom-Json
 ($states | Where-Object country_code -eq 'US' | Select-Object -First 100) +
 ($states | Select-Object -First 50) |
-    Group-Object state_code | ForEach-Object { $_.Group[0] } |
+    Group-Object iso2 | ForEach-Object { $_.Group[0] } |
     ConvertTo-Json | Set-Content states.sample.json
 
 $cities = Get-Content cities.json | ConvertFrom-Json
@@ -105,7 +105,9 @@ Run the helper script (`tmp/csc/transform.py`) to map the dr5hn field names to t
 python tmp/csc/transform.py
 ```
 
-> **TODO:** `transform.py` currently falls back to `country_code` when city/state relationships are missing. We still need to document and automate state dependencies explicitly so every imported city gets a valid `state_code`.
+Per `data/cities.py`, `state_code` is required for most lookups, so the transform keeps the raw `state_code` from `cities.json` whenever possible and falls back to the `state_id`→code mapping derived from `states.json` when needed. You should now see `state_code` populated for every city whose upstream data includes it.
+
+> **Known limitation:** the upstream dr5hn dataset does not provide reliable `population`, `area_km2`, or `capital` data for states and cities (and even for countries the `area_km2` field is often missing). For now these values are zero-filled in the sample import strictly to exercise the API and connection logic. If we want meaningful analytics, we either need to relax the validators in `data/states.py` / `data/cities.py` / `data/countries.py` or source richer reference data that includes those fields.
 
 ## 5. Import Into MongoDB
 
@@ -133,7 +135,6 @@ use seDB
 db.countries.countDocuments()
 db.states.findOne({ country_code: "US" })
 db.cities.find({ country_code: "US" }).limit(3)
-// TODO: ensure future samples show a non-null state_code for each city
 ```
 
 ## 7. Run the API Against Local Mongo
