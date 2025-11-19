@@ -4,6 +4,7 @@ Tests for the states data module.
 import pytest
 from unittest.mock import patch, MagicMock
 from data import states as S
+from datetime import datetime
 
 
 class TestStates:
@@ -193,9 +194,9 @@ class TestStates:
              patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_state
             mock_update.return_value = mock_modified_result
-            payload = {S.STATE_CODE: 'ZZ', S.POPULATION: 123}
+            payload = {S.STATE_CODE: 'ZZ', S.POPULATION: 123, S.UPDATED_AT: datetime.now()}
             assert S.update_state('NY', payload) is True
-            mock_update.assert_called_once_with(S.STATES_COLLECT, {S.STATE_CODE: 'NY'}, {S.POPULATION: 123})
+            mock_update.assert_called_once_with(S.STATES_COLLECT, {S.STATE_CODE: 'NY'}, {S.POPULATION: 123, S.UPDATED_AT: payload[S.UPDATED_AT]})
 
     def test_update_state_country_code_not_found_raises(self, sample_state):
         """Test updating state with non-existent country_code raises DB error."""

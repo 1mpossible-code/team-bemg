@@ -3,6 +3,7 @@ Tests for the cities data module.
 """
 import pytest
 from unittest.mock import patch, MagicMock, DEFAULT
+from datetime import datetime
 from data import cities
 
 
@@ -254,14 +255,14 @@ class TestCities:
              patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_with_state
             mock_update.return_value = mock_modified_result
-            payload = {cities.CITY_NAME: 'NewName', cities.POPULATION: 123}
+            payload = {cities.CITY_NAME: 'NewName', cities.POPULATION: 123, cities.UPDATED_AT: datetime.now()}
             
             result = cities.update_city('Springfield', 'IL', payload)
             assert result is True
             mock_update.assert_called_once_with(
                 cities.CITIES_COLLECT,
                 {cities.CITY_NAME: 'Springfield', cities.STATE_CODE: 'IL'},
-                {cities.POPULATION: 123}
+                {cities.POPULATION: 123, cities.UPDATED_AT: payload[cities.UPDATED_AT]}
             )
 
     def test_update_city_strips_state_code_from_update(self, sample_city_with_state, mock_modified_result):
@@ -270,14 +271,14 @@ class TestCities:
              patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_with_state
             mock_update.return_value = mock_modified_result
-            payload = {cities.STATE_CODE: 'XX', cities.POPULATION: 123}
+            payload = {cities.STATE_CODE: 'XX', cities.POPULATION: 123, cities.UPDATED_AT: datetime.now()}
             
             result = cities.update_city('Springfield', 'IL', payload)
             assert result is True
             mock_update.assert_called_once_with(
                 cities.CITIES_COLLECT,
                 {cities.CITY_NAME: 'Springfield', cities.STATE_CODE: 'IL'},
-                {cities.POPULATION: 123}
+                {cities.POPULATION: 123, cities.UPDATED_AT: payload[cities.UPDATED_AT]}
             )
 
     def test_update_city_by_name_and_country_success(self, sample_city_no_state, mock_modified_result):
