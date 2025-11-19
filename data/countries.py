@@ -210,6 +210,8 @@ def delete_country(code: str) -> bool:
     Delete a country by its code.
     Cascading: Deletes all states and cities in this country first.
     """
+    if not can_delete_country(code)[0]:
+        raise ValueError(can_delete_country(code)[1])
 
     states.delete_states_by_country(code)
 

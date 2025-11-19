@@ -16,7 +16,8 @@ AREA_KM2 = 'area_km2'
 COORDINATES = 'coordinates'
 LATITUDE = 'latitude'
 LONGITUDE = 'longitude'
-
+CREATED_AT = 'created_at'
+UPDATED_AT = 'updated_at'
 REQUIRED_FIELDS = [CITY_NAME, COUNTRY_CODE]
 OPTIONAL_FIELDS = [STATE_CODE, POPULATION, AREA_KM2, COORDINATES]
 
@@ -29,7 +30,9 @@ TEST_CITY = {
     COORDINATES: {
         LATITUDE: 39.78,
         LONGITUDE: -89.64
-    }
+    },
+    CREATED_AT: datetime.now(),
+    UPDATED_AT: datetime.now()
 }
 
 
@@ -164,7 +167,10 @@ def update_city(name: str, state_code: str, update_data: dict) -> bool:
         del update_data[STATE_CODE]
     # Set updated_at timestamp
     from datetime import datetime as _dt
-    update_data['updated_at'] = _dt.utcnow()
+    if UPDATED_AT in update_data:
+        update_data[UPDATED_AT] = _dt.utcnow()
+    else:
+        update_data[UPDATED_AT] = _dt.utcnow()
 
     result = dbc.update(
         CITIES_COLLECT, {

@@ -16,7 +16,8 @@ COUNTRY_CODE = 'country_code'
 CAPITAL = 'capital'
 POPULATION = 'population'
 AREA_KM2 = 'area_km2'
-
+CREATED_AT = 'created_at'
+UPDATED_AT = 'updated_at'
 REQUIRED_FIELDS = [STATE_NAME, STATE_CODE, COUNTRY_CODE]
 OPTIONAL_FIELDS = [CAPITAL, POPULATION, AREA_KM2]
 
@@ -136,7 +137,10 @@ def update_state(code: str, update_data: dict) -> bool:
         del update_data[STATE_CODE]
     # Set updated_at timestamp
     from datetime import datetime as _dt
-    update_data['updated_at'] = _dt.utcnow()
+    if UPDATED_AT in update_data:
+        update_data[UPDATED_AT] = _dt.utcnow()
+    else:
+        update_data[UPDATED_AT] = _dt.utcnow()
 
     result = dbc.update(STATES_COLLECT, {STATE_CODE: code}, update_data)
     return result.modified_count > 0
@@ -167,6 +171,9 @@ def delete_state(code: str) -> bool:
     Delete a state by its code.
     Cascading: Deletes all cities in this state first.
     """
+
+    if not can_delete_state(code)[0]:
+        raise ValueError(can_delete_state(code)[1])
 
     cities.delete_cities_by_state(code)
 
