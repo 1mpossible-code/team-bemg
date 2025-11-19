@@ -7,6 +7,8 @@ import data.db_connect as dbc
 from data.utils import sanitize_string, sanitize_code
 from datetime import datetime
 
+import data.states as states
+
 COUNTRIES_COLLECT = 'countries'
 
 COUNTRY_NAME = 'country_name'
@@ -83,7 +85,9 @@ def get_countries_by_continent(continent: str) -> list:
     return dbc.read_filtered(COUNTRIES_COLLECT, {CONTINENT: continent})
 
 
-def get_countries_by_population_range(min_pop: int = None, max_pop: int = None) -> list:
+def get_countries_by_population_range(
+        min_pop: int = None,
+        max_pop: int = None) -> list:
     """
     Returns a list of all countries filtered by population range
     """
@@ -106,11 +110,11 @@ def search_countries_by_name(name_query: str) -> list:
     """
     if not name_query or not name_query.strip():
         return []
-    
+
     # Use MongoDB regex for case-insensitive partial matching
     search_pattern = {"$regex": name_query.strip(), "$options": "i"}
     query = {COUNTRY_NAME: search_pattern}
-    
+
     return dbc.read_filtered(COUNTRIES_COLLECT, query)
 
 
@@ -122,24 +126,29 @@ def add_country(country_data: dict) -> bool:
     for field in REQUIRED_FIELDS:
         if field not in country_data:
             raise ValueError(f"Missing required field: {field}")
-    
+
     # Sanitize string fields
     if COUNTRY_NAME in country_data:
-        country_data[COUNTRY_NAME] = sanitize_string(country_data[COUNTRY_NAME])
+        country_data[COUNTRY_NAME] = sanitize_string(
+            country_data[COUNTRY_NAME])
     if COUNTRY_CODE in country_data:
         country_data[COUNTRY_CODE] = sanitize_code(country_data[COUNTRY_CODE])
     if CAPITAL in country_data:
         country_data[CAPITAL] = sanitize_string(country_data[CAPITAL])
     if CONTINENT in country_data:
         country_data[CONTINENT] = sanitize_string(country_data[CONTINENT])
-    
+
     # Validate continent
     if country_data[CONTINENT] not in VALID_CONTINENTS:
-        raise ValueError(f"Invalid continent: {country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}")
-    
+        raise ValueError(
+            f"Invalid continent: {
+                country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}")
+
     if get_country_by_code(country_data[COUNTRY_CODE]):
-        raise ValueError(f"Country with code {country_data[COUNTRY_CODE]} already exists")
-    
+        raise ValueError(
+            f"Country with code {
+                country_data[COUNTRY_CODE]} already exists")
+
     # Timestamps
     now = datetime.utcnow()
     country_data['created_at'] = now
@@ -156,7 +165,7 @@ def update_country(code: str, update_data: dict) -> bool:
     """
     if not get_country_by_code(code):
         return False
-    
+
     # Sanitize string fields in update
     if COUNTRY_NAME in update_data:
         update_data[COUNTRY_NAME] = sanitize_string(update_data[COUNTRY_NAME])
@@ -164,7 +173,7 @@ def update_country(code: str, update_data: dict) -> bool:
         update_data[CAPITAL] = sanitize_string(update_data[CAPITAL])
     if CONTINENT in update_data:
         update_data[CONTINENT] = sanitize_string(update_data[CONTINENT])
-    
+
     if COUNTRY_CODE in update_data:
         del update_data[COUNTRY_CODE]
 
@@ -199,13 +208,11 @@ def can_delete_country(country_code: str) -> tuple[bool, str]:
 def delete_country(code: str) -> bool:
     """
     Delete a country by its code.
-    Checks for dependent states first.
-    Returns True if successful, False otherwise.
+    Cascading: Deletes all states and cities in this country first.
     """
-    can_delete, reason = can_delete_country(code)
-    if not can_delete:
-        raise ValueError(reason)
-    
+
+    states.delete_states_by_country(code)
+
     result = dbc.delete(COUNTRIES_COLLECT, {COUNTRY_CODE: code})
     return result > 0
 

@@ -61,10 +61,10 @@ def ensure_connection(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         global client
-        
+
         if client is None:
             client = connect_db()
-            
+
         try:
             return func(*args, **kwargs)
         except (ConnectionFailure, ServerSelectionTimeoutError):
@@ -72,7 +72,7 @@ def ensure_connection(func):
             client = None
             client = connect_db()
             return func(*args, **kwargs)
-            
+
     return wrapper
 
 
@@ -110,6 +110,16 @@ def delete(collection: str, filt: dict, db=SE_DB):
     print(f'{filt=}')
     del_result = client[db][collection].delete_one(filt)
     return del_result.deleted_count
+
+
+@ensure_connection
+def delete_many(collection: str, filt: dict, db=SE_DB) -> int:
+    """
+    Delete multiple documents matching the filter.
+    Returns the count of deleted documents.
+    """
+    result = client[db][collection].delete_many(filt)
+    return result.deleted_count
 
 
 @ensure_connection

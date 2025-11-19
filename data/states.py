@@ -6,6 +6,8 @@ import data.db_connect as dbc
 from data.utils import sanitize_string, sanitize_code
 from datetime import datetime
 
+import data.cities as cities
+
 STATES_COLLECT = 'states'
 
 STATE_NAME = 'state_name'
@@ -49,7 +51,9 @@ def get_states_by_country(country_code: str) -> list:
     return dbc.read_filtered(STATES_COLLECT, {COUNTRY_CODE: country_code})
 
 
-def get_states_by_population_range(min_pop: int = None, max_pop: int = None) -> list:
+def get_states_by_population_range(
+        min_pop: int = None,
+        max_pop: int = None) -> list:
     """
     Returns a list of all states filtered by population range
     """
@@ -87,7 +91,7 @@ def add_state(state_data: dict) -> bool:
     for field in REQUIRED_FIELDS:
         if field not in state_data:
             raise ValueError(f"Missing required field: {field}")
-    
+
     # Sanitize string fields
     if STATE_NAME in state_data:
         state_data[STATE_NAME] = sanitize_string(state_data[STATE_NAME])
@@ -97,10 +101,12 @@ def add_state(state_data: dict) -> bool:
         state_data[COUNTRY_CODE] = sanitize_code(state_data[COUNTRY_CODE])
     if CAPITAL in state_data:
         state_data[CAPITAL] = sanitize_string(state_data[CAPITAL])
-        
+
     if get_state_by_code(state_data[STATE_CODE]):
-        raise ValueError(f"State with code {state_data[STATE_CODE]} already exists")
-    
+        raise ValueError(
+            f"State with code {
+                state_data[STATE_CODE]} already exists")
+
     # Timestamps
     now = datetime.utcnow()
     state_data['created_at'] = now
@@ -117,7 +123,7 @@ def update_state(code: str, update_data: dict) -> bool:
     """
     if not get_state_by_code(code):
         return False
-    
+
     # Sanitize string fields in update
     if STATE_NAME in update_data:
         update_data[STATE_NAME] = sanitize_string(update_data[STATE_NAME])
@@ -125,7 +131,7 @@ def update_state(code: str, update_data: dict) -> bool:
         update_data[COUNTRY_CODE] = sanitize_code(update_data[COUNTRY_CODE])
     if CAPITAL in update_data:
         update_data[CAPITAL] = sanitize_string(update_data[CAPITAL])
-    
+
     if STATE_CODE in update_data:
         del update_data[STATE_CODE]
     # Set updated_at timestamp
@@ -159,15 +165,25 @@ def can_delete_state(state_code: str) -> tuple[bool, str]:
 def delete_state(code: str) -> bool:
     """
     Delete a state by its code.
-    Checks for dependent cities first.
-    Returns True if successful, False otherwise.
+    Cascading: Deletes all cities in this state first.
     """
-    can_delete, reason = can_delete_state(code)
-    if not can_delete:
-        raise ValueError(reason)
-    
+
+    cities.delete_cities_by_state(code)
+
     result = dbc.delete(STATES_COLLECT, {STATE_CODE: code})
     return result > 0
+
+
+def delete_states_by_country(country_code: str) -> int:
+    """
+    Delete all states in a specific country.
+    Cascading: Deletes all cities in this country first.
+    """
+
+    cities.delete_cities_by_country(country_code)
+
+    return dbc.delete_many(STATES_COLLECT,
+                           {COUNTRY_CODE: country_code.upper()})
 
 
 def state_exists(code: str) -> bool:

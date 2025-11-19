@@ -221,6 +221,23 @@ def delete_city_by_name_and_country(name: str, country_code: str) -> bool:
     return result > 0
 
 
+def delete_cities_by_state(state_code: str) -> int:
+    """
+    Delete all cities in a specific state.
+    Used for cascading deletes.
+    """
+    return dbc.delete_many(CITIES_COLLECT, {STATE_CODE: state_code.upper()})
+
+
+def delete_cities_by_country(country_code: str) -> int:
+    """
+    Delete all cities in a specific country.
+    Used for cascading deletes.
+    """
+    return dbc.delete_many(CITIES_COLLECT,
+                           {COUNTRY_CODE: country_code.upper()})
+
+
 def city_exists(name: str, state_code: str = None,
                 country_code: str = None) -> bool:
     """
