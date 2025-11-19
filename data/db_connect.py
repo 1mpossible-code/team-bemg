@@ -6,6 +6,7 @@ import os
 from functools import wraps
 
 import pymongo as pm
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 LOCAL = "0"
 CLOUD = "1"
@@ -60,9 +61,18 @@ def ensure_connection(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         global client
+        
         if client is None:
-            connect_db()
-        return func(*args, **kwargs)
+            client = connect_db()
+            
+        try:
+            return func(*args, **kwargs)
+        except (ConnectionFailure, ServerSelectionTimeoutError):
+            print("Connection lost. Reconnecting...")
+            client = None
+            client = connect_db()
+            return func(*args, **kwargs)
+            
     return wrapper
 
 
