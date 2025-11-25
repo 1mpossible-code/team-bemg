@@ -4,11 +4,19 @@ from flask_restx import Api
 
 from data import db_connect
 
+import logging
+
 
 def create_app():
     app = Flask(__name__)
     # Connection will be established automatically by @ensure_connection
     # when database operations are first used.
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
     CORS(app)
     api = Api(

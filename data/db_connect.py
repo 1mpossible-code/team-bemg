@@ -8,6 +8,8 @@ from functools import wraps
 import pymongo as pm
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
+import logging
+
 LOCAL = "0"
 CLOUD = "1"
 
@@ -17,6 +19,7 @@ client = None
 
 MONGO_ID = '_id'
 
+logger = logging.getLogger(__name__)
 
 def connect_db():
     """
@@ -28,13 +31,13 @@ def connect_db():
     """
     global client
     if client is None:  # not connected yet!
-        print('Setting client because it is None.')
+        logger.info('Setting client because it is None.')
         if os.environ.get('CLOUD_MONGO', LOCAL) == CLOUD:
             password = os.environ.get('MONGO_PASSWD')
             if not password:
                 raise ValueError('You must set your password '
                                  + 'to use Mongo in the cloud.')
-            print('Connecting to Mongo in the cloud.')
+            logger.info('Connecting to Mongo in the cloud.')
             client = pm.MongoClient(f'mongodb+srv://gcallah:{password}'
                                     + '@koukoumongo1.yud9b.mongodb.net/'
                                     + '?retryWrites=true&w=majority')
@@ -44,11 +47,11 @@ def connect_db():
                 redacted = mongo_uri
                 if '@' in mongo_uri:
                     redacted = mongo_uri.split('@')[-1]
-                print(f"Connecting to Mongo locally using custom URI: "
+                logger.info(f"Connecting to Mongo locally using custom URI: "
                       f"{redacted}")
                 client = pm.MongoClient(mongo_uri)
             else:
-                print("Connecting to Mongo locally on mongodb://localhost:27017.")
+                logger.info("Connecting to Mongo locally on mongodb://localhost:27017.")
                 client = pm.MongoClient("mongodb://localhost:27017")
     return client
 
@@ -68,7 +71,7 @@ def ensure_connection(func):
         try:
             return func(*args, **kwargs)
         except (ConnectionFailure, ServerSelectionTimeoutError):
-            print("Connection lost. Reconnecting...")
+            logger.info("Connection lost. Reconnecting...")
             client = None
             client = connect_db()
             return func(*args, **kwargs)
