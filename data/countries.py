@@ -149,6 +149,12 @@ def add_country(country_data: dict) -> bool:
             f"Country with code {
                 country_data[COUNTRY_CODE]} already exists")
 
+    if country_data.get(POPULATION, 0) < 0:
+        raise ValueError("Population cannot be negative")
+
+    if country_data.get(AREA_KM2, 0) < 0:
+        raise ValueError("Area cannot be negative")
+
     # Timestamps
     now = datetime.utcnow()
     country_data['created_at'] = now

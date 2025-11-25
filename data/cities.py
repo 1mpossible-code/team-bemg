@@ -139,6 +139,12 @@ def add_city(city_data: dict) -> bool:
                     city_data[CITY_NAME]}' already exists in country '{
                     city_data[COUNTRY_CODE]}'")
 
+    if city_data.get(POPULATION, 0) < 0:
+        raise ValueError("Population cannot be negative")
+
+    if city_data.get(AREA_KM2, 0) < 0:
+        raise ValueError("Area cannot be negative")
+
     # Timestamps
     now = datetime.utcnow()
     city_data['created_at'] = now

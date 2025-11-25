@@ -108,6 +108,12 @@ def add_state(state_data: dict) -> bool:
             f"State with code {
                 state_data[STATE_CODE]} already exists")
 
+    if state_data.get(POPULATION, 0) < 0:
+        raise ValueError("Population cannot be negative")
+
+    if state_data.get(AREA_KM2, 0) < 0:
+        raise ValueError("Area cannot be negative")
+
     # Timestamps
     now = datetime.utcnow()
     state_data['created_at'] = now
