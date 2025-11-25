@@ -3,13 +3,13 @@ All interaction with MongoDB should be through this file!
 We may be required to use a new database at any point.
 """
 
+import logging
 import os
 from functools import wraps
 
 import pymongo as pm
+from dotenv import load_dotenv
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
-
-import logging
 
 LOCAL = "0"
 CLOUD = "1"
@@ -22,6 +22,9 @@ MONGO_ID = "_id"
 
 logger = logging.getLogger(__name__)
 
+load_dotenv()
+
+
 def connect_db():
     """
     This provides a uniform way to connect to the DB across all uses.
@@ -31,17 +34,19 @@ def connect_db():
     client global.
     """
     global client
-    if client is None:  # not connected yet!
+    if client is None:
         print("Setting client because it is None.")
-        if os.environ.get("CLOUD_MONGO", LOCAL) == CLOUD:
-            uri = os.envron.get("ALTAS_MONGO_DB_URI")
+        if os.getenv("CLOUD_MONGO", LOCAL) == CLOUD:
+            uri = os.getenv("ALTAS_MONGO_DB_URI")
             if not uri:
-                raise ValueError("You must set your uri in cloud config.")
+                raise ValueError(
+                    "You must set your ALTAS_MONGO_DB_URI in cloud config."
+                )
             else:
-                print("Connecting to Mongo in the cloud.")
+                logger.info("Connecting to Cloud Atlas MongoDB.")
                 client = pm.MongoClient(uri)
         else:
-            mongo_uri = os.environ.get("MONGO_URI")
+            mongo_uri = os.getenv("MONGO_URI")
             if mongo_uri:
                 redacted = mongo_uri
                 if "@" in mongo_uri:
