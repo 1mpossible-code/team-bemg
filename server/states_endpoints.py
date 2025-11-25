@@ -47,6 +47,13 @@ state_model = states_ns.model(
             required=True,
             description='Area in square kilometers',
             example=423970.0)})
+# Read-only timestamp fields (added to validators as dates)
+state_model['created_at'] = fields.DateTime(
+    description='Creation timestamp', example='2025-11-12T12:00:00Z'
+)
+state_model['updated_at'] = fields.DateTime(
+    description='Last update timestamp', example='2025-11-12T12:00:00Z'
+)
 
 state_update_model = states_ns.model('StateUpdate', {
     'state_name': fields.String(description='State name'),

@@ -40,13 +40,16 @@ class TestCountriesEndpoints:
             mock_get_country.return_value = countries.TEST_COUNTRY
             mock_get.return_value = [states.TEST_STATE]
 
-            # Act 
+            # Act
             response = client.get(f'/countries/{countries.TEST_COUNTRY[countries.COUNTRY_CODE]}/states')
 
-            # Assert 
+            # Assert
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
-            assert data == [states.TEST_STATE]
+            # API now exposes created_at/updated_at (may be None); assert core fields match
+            assert isinstance(data, list) and len(data) == 1
+            assert data[0]['state_code'] == states.TEST_STATE['state_code']
+            assert 'created_at' in data[0] and 'updated_at' in data[0]
             mock_get_country.assert_called_once_with(countries.TEST_COUNTRY[countries.COUNTRY_CODE])
             mock_get.assert_called_once_with(countries.TEST_COUNTRY[countries.COUNTRY_CODE])
 

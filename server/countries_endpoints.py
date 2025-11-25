@@ -45,6 +45,13 @@ country_model = countries_ns.model(
         ),
     },
 )
+# Read-only timestamp fields (added to validators as dates)
+country_model['created_at'] = fields.DateTime(
+    description='Creation timestamp', example='2025-11-12T12:00:00Z'
+)
+country_model['updated_at'] = fields.DateTime(
+    description='Last update timestamp', example='2025-11-12T12:00:00Z'
+)
 
 country_update_model = countries_ns.model(
     "CountryUpdate",

@@ -61,6 +61,14 @@ city_model = cities_ns.model(
     }
 )
 
+# Read-only timestamp fields (added to validators as dates)
+city_model['created_at'] = fields.DateTime(
+    description='Creation timestamp', example='2025-11-12T12:00:00Z'
+)
+city_model['updated_at'] = fields.DateTime(
+    description='Last update timestamp', example='2025-11-12T12:00:00Z'
+)
+
 # Model for updating (key fields are not updatable)
 city_update_model = cities_ns.model('CityUpdate', {
     'population': fields.Integer(description='Population count'),
