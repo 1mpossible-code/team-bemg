@@ -2,6 +2,7 @@
 All interaction with MongoDB should be through this file!
 We may be required to use a new database at any point.
 """
+
 import os
 from functools import wraps
 
@@ -13,11 +14,11 @@ import logging
 LOCAL = "0"
 CLOUD = "1"
 
-SE_DB = 'seDB'
+SE_DB = "seDB"
 
 client = None
 
-MONGO_ID = '_id'
+MONGO_ID = "_id"
 
 logger = logging.getLogger(__name__)
 
@@ -31,24 +32,21 @@ def connect_db():
     """
     global client
     if client is None:  # not connected yet!
-        logger.info('Setting client because it is None.')
-        if os.environ.get('CLOUD_MONGO', LOCAL) == CLOUD:
-            password = os.environ.get('MONGO_PASSWD')
-            if not password:
-                raise ValueError('You must set your password '
-                                 + 'to use Mongo in the cloud.')
-            logger.info('Connecting to Mongo in the cloud.')
-            client = pm.MongoClient(f'mongodb+srv://gcallah:{password}'
-                                    + '@koukoumongo1.yud9b.mongodb.net/'
-                                    + '?retryWrites=true&w=majority')
+        print("Setting client because it is None.")
+        if os.environ.get("CLOUD_MONGO", LOCAL) == CLOUD:
+            uri = os.envron.get("ALTAS_MONGO_DB_URI")
+            if not uri:
+                raise ValueError("You must set your uri in cloud config.")
+            else:
+                print("Connecting to Mongo in the cloud.")
+                client = pm.MongoClient(uri)
         else:
-            mongo_uri = os.environ.get('MONGO_URI')
+            mongo_uri = os.environ.get("MONGO_URI")
             if mongo_uri:
                 redacted = mongo_uri
-                if '@' in mongo_uri:
-                    redacted = mongo_uri.split('@')[-1]
-                logger.info(f"Connecting to Mongo locally using custom URI: "
-                      f"{redacted}")
+                if "@" in mongo_uri:
+                    redacted = mongo_uri.split("@")[-1]
+                print(f"Connecting to Mongo locally using custom URI: {redacted}")
                 client = pm.MongoClient(mongo_uri)
             else:
                 logger.info("Connecting to Mongo locally on mongodb://localhost:27017.")
@@ -61,6 +59,7 @@ def ensure_connection(func):
     Decorator to ensure database connection exists before executing function.
     Automatically calls connect_db() if client is None.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         global client
@@ -90,7 +89,7 @@ def create(collection, doc, db=SE_DB):
     """
     Insert a single doc into collection.
     """
-    print(f'{db=}')
+    print(f"{db=}")
     return client[db][collection].insert_one(doc)
 
 
@@ -110,7 +109,7 @@ def delete(collection: str, filt: dict, db=SE_DB):
     """
     Find with a filter and return on the first doc found.
     """
-    print(f'{filt=}')
+    print(f"{filt=}")
     del_result = client[db][collection].delete_one(filt)
     return del_result.deleted_count
 
@@ -127,7 +126,7 @@ def delete_many(collection: str, filt: dict, db=SE_DB) -> int:
 
 @ensure_connection
 def update(collection, filters, update_dict, db=SE_DB):
-    return client[db][collection].update_one(filters, {'$set': update_dict})
+    return client[db][collection].update_one(filters, {"$set": update_dict})
 
 
 @ensure_connection
