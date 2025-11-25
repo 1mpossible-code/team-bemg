@@ -41,6 +41,7 @@ class TestStatesEndpoints:
             data = json.loads(resp.data)
             assert isinstance(data, list)
             assert data[0]['state_code'] == states_data.TEST_STATE['state_code']
+            assert 'created_at' in data[0] and 'updated_at' in data[0]
             mock_get.assert_called_once()
 
     def test_get_states_by_country_success(self, client):
@@ -54,6 +55,7 @@ class TestStatesEndpoints:
             data = resp.get_json()
             assert isinstance(data, list)
             assert data[0]['country_code'] == 'US'
+            assert 'created_at' in data[0] and 'updated_at' in data[0]
             mock_get.assert_called_once_with('US')
 
     def test_get_states_by_country_db_error(self, client):
@@ -99,6 +101,7 @@ class TestStatesEndpoints:
             assert resp.status_code == HTTPStatus.OK
             data = resp.get_json()
             assert data['state_code'] == 'NY'
+            assert 'created_at' in data and 'updated_at' in data
             mock_get.assert_called_once_with('NY')
 
     def test_get_state_by_code_not_found(self, client):
@@ -211,6 +214,7 @@ class TestStatesEndpoints:
             data = resp.get_json()
             assert isinstance(data, list)
             assert data[0]['state_code'] == 'NY'
+            assert 'created_at' in data[0] and 'updated_at' in data[0]
             mock_get.assert_called_once_with('NY')
 
     def test_get_cities_in_state_db_error(self, client):

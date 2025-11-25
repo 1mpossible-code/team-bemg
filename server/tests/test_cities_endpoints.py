@@ -105,6 +105,7 @@ class TestCitiesEndpoints:
             assert resp.status_code == HTTPStatus.OK
             data = json.loads(resp.data)
             assert data['city_name'] == city_name
+            assert 'created_at' in data and 'updated_at' in data
             mock_get.assert_called_once_with(city_name, state_code)
 
     def test_get_city_by_name_and_state_not_found(self, client):
@@ -163,6 +164,10 @@ class TestCitiesEndpoints:
             mock_get.return_value = [sample_city]
             resp = client.get('/cities/country/US')
             assert resp.status_code == HTTPStatus.OK
+            payload = resp.get_json()
+            assert isinstance(payload, list)
+            if payload:
+                assert 'created_at' in payload[0] and 'updated_at' in payload[0]
             mock_get.assert_called_once_with('US')
 
     def test_get_cities_by_country_endpoint_db_error(self, client):
@@ -208,6 +213,7 @@ class TestCitiesEndpoints:
             assert resp.status_code == HTTPStatus.OK
             data = json.loads(resp.data)
             assert data['population'] == 5000
+            assert 'updated_at' in data
             mock_update.assert_called_once_with(
                 city_name, state_code, update_data
             )
