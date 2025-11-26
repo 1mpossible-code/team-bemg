@@ -8,6 +8,7 @@ from data.utils import sanitize_string, sanitize_code
 from datetime import datetime
 
 import data.states as states
+from data.cache import country_by_code_cache
 
 COUNTRIES_COLLECT = 'countries'
 
@@ -68,7 +69,16 @@ def get_country_by_code(code: str) -> dict:
     """
     Get a specific country by its ISO country code
     """
-    return dbc.read_one(COUNTRIES_COLLECT, {COUNTRY_CODE: code})
+    # Normalize key for cache
+    key = code.upper()
+    cached = country_by_code_cache.get(key)
+    if cached is not None:
+        return cached
+
+    country = dbc.read_one(COUNTRIES_COLLECT, {COUNTRY_CODE: key})
+    if country is not None:
+        country_by_code_cache.set(key, country)
+    return country
 
 
 def get_country_by_name(name: str) -> dict:
@@ -161,7 +171,12 @@ def add_country(country_data: dict) -> bool:
     country_data['updated_at'] = now
 
     result = dbc.create(COUNTRIES_COLLECT, country_data)
-    return result.acknowledged
+    if result.acknowledged:
+        # New country; ensure cache is populated for fast reads
+        key = country_data[COUNTRY_CODE].upper()
+        country_by_code_cache.set(key, country_data)
+        return True
+    return False
 
 
 def update_country(code: str, update_data: dict) -> bool:
@@ -188,7 +203,11 @@ def update_country(code: str, update_data: dict) -> bool:
     update_data['updated_at'] = _dt.utcnow()
 
     result = dbc.update(COUNTRIES_COLLECT, {COUNTRY_CODE: code}, update_data)
-    return result.modified_count > 0
+    if result.modified_count > 0:
+        # Invalidate so the next read repopulates from DB
+        country_by_code_cache.invalidate(code.upper())
+        return True
+    return False
 
 
 def get_dependent_states_count(country_code: str) -> int:
@@ -222,7 +241,10 @@ def delete_country(code: str) -> bool:
     states.delete_states_by_country(code)
 
     result = dbc.delete(COUNTRIES_COLLECT, {COUNTRY_CODE: code})
-    return result > 0
+    if result > 0:
+        country_by_code_cache.invalidate(code.upper())
+        return True
+    return False
 
 
 def country_exists(code: str) -> bool:

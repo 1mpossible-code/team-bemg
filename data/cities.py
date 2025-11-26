@@ -5,6 +5,7 @@ All city-related database operations should go through this module.
 import data.db_connect as dbc
 from data.utils import sanitize_string, sanitize_code
 from datetime import datetime
+from data.cache import city_by_name_state_cache
 
 CITIES_COLLECT = 'cities'
 
@@ -98,9 +99,17 @@ def get_city_by_name_and_state(name: str, state_code: str) -> dict | None:
     Get a specific city by its name and state code.
     This is the most precise lookup for cities within states.
     """
-    return dbc.read_one(
+    key = (name, state_code.upper())
+    cached = city_by_name_state_cache.get(key)
+    if cached is not None:
+        return cached
+
+    city = dbc.read_one(
         CITIES_COLLECT, {
-            CITY_NAME: name, STATE_CODE: state_code})
+            CITY_NAME: name, STATE_CODE: state_code.upper()})
+    if city is not None:
+        city_by_name_state_cache.set(key, city)
+    return city
 
 
 def add_city(city_data: dict) -> bool:
@@ -151,7 +160,11 @@ def add_city(city_data: dict) -> bool:
     city_data['updated_at'] = now
 
     result = dbc.create(CITIES_COLLECT, city_data)
-    return result.acknowledged
+    if result.acknowledged:
+        key = (city_data[CITY_NAME], city_data.get(STATE_CODE, "").upper())
+        city_by_name_state_cache.set(key, city_data)
+        return True
+    return False
 
 
 def update_city(name: str, state_code: str, update_data: dict) -> bool:
@@ -181,7 +194,10 @@ def update_city(name: str, state_code: str, update_data: dict) -> bool:
     result = dbc.update(
         CITIES_COLLECT, {
             CITY_NAME: name, STATE_CODE: state_code}, update_data)
-    return result.modified_count > 0
+    if result.modified_count > 0:
+        city_by_name_state_cache.invalidate((name, state_code.upper()))
+        return True
+    return False
 
 
 def update_city_by_name_and_country(
@@ -219,7 +235,10 @@ def delete_city(name: str, state_code: str) -> bool:
     result = dbc.delete(
         CITIES_COLLECT, {
             CITY_NAME: name, STATE_CODE: state_code})
-    return result > 0
+    if result > 0:
+        city_by_name_state_cache.invalidate((name, state_code.upper()))
+        return True
+    return False
 
 
 def delete_city_by_name_and_country(name: str, country_code: str) -> bool:

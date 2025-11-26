@@ -7,6 +7,7 @@ from data.utils import sanitize_string, sanitize_code
 from datetime import datetime
 
 import data.cities as cities
+from data.cache import state_by_code_cache
 
 STATES_COLLECT = 'states'
 
@@ -74,7 +75,15 @@ def get_state_by_code(code: str) -> dict | None:
     """
     Returns a state by its code
     """
-    return dbc.read_one(STATES_COLLECT, {STATE_CODE: code})
+    key = code.upper()
+    cached = state_by_code_cache.get(key)
+    if cached is not None:
+        return cached
+
+    state = dbc.read_one(STATES_COLLECT, {STATE_CODE: key})
+    if state is not None:
+        state_by_code_cache.set(key, state)
+    return state
 
 
 def get_state_by_name(name: str) -> dict | None:
@@ -120,7 +129,11 @@ def add_state(state_data: dict) -> bool:
     state_data['updated_at'] = now
 
     result = dbc.create(STATES_COLLECT, state_data)
-    return result.acknowledged
+    if result.acknowledged:
+        key = state_data[STATE_CODE].upper()
+        state_by_code_cache.set(key, state_data)
+        return True
+    return False
 
 
 def update_state(code: str, update_data: dict) -> bool:
@@ -149,7 +162,10 @@ def update_state(code: str, update_data: dict) -> bool:
         update_data[UPDATED_AT] = _dt.utcnow()
 
     result = dbc.update(STATES_COLLECT, {STATE_CODE: code}, update_data)
-    return result.modified_count > 0
+    if result.modified_count > 0:
+        state_by_code_cache.invalidate(code.upper())
+        return True
+    return False
 
 
 def get_dependent_cities_count(state_code: str) -> int:
@@ -184,7 +200,10 @@ def delete_state(code: str) -> bool:
     cities.delete_cities_by_state(code)
 
     result = dbc.delete(STATES_COLLECT, {STATE_CODE: code})
-    return result > 0
+    if result > 0:
+        state_by_code_cache.invalidate(code.upper())
+        return True
+    return False
 
 
 def delete_states_by_country(country_code: str) -> int:
