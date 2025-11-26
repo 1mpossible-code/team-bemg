@@ -32,6 +32,10 @@ list_parser.add_argument('min_population', type=int, required=False,
                          help='Filter by minimum population')
 list_parser.add_argument('max_population', type=int, required=False,
                          help='Filter by maximum population')
+list_parser.add_argument('limit', type=int, required=False,
+                         help='Maximum number of cities to return (positive integer)')
+list_parser.add_argument('offset', type=int, required=False,
+                          help='Number of cities to skip from the start (>= 0)')
 
 city_model = cities_ns.model(
     'City',
@@ -83,6 +87,25 @@ error_model = cities_ns.model('Error', {
 })
 
 
+def _validate_pagination(limit, offset):
+    if limit is not None and limit <= 0:
+        cities_ns.abort(
+            HTTPStatus.BAD_REQUEST, "limit must be a positive integer"
+        )
+    if offset is not None and offset < 0:
+        cities_ns.abort(
+            HTTPStatus.BAD_REQUEST, "offset must be zero or a positive integer"
+        )
+
+
+def _apply_pagination(results, limit, offset):
+    if offset:
+        results = results[offset:]
+    if limit:
+        results = results[:limit]
+    return results
+
+
 @cities_ns.route('')
 class CitiesList(Resource):
 
@@ -96,22 +119,26 @@ class CitiesList(Resource):
         state_code = args.get('state_code')
         min_pop = args.get('min_population')
         max_pop = args.get('max_population')
+        limit = args.get('limit')
+        offset = args.get('offset')
+
+        _validate_pagination(limit, offset)
 
         try:
             if name_query:
-                return cities_data.get_cities_by_name(
-                    name_query), HTTPStatus.OK
+                data = cities_data.get_cities_by_name(name_query)
             elif country_code:
-                return cities_data.get_cities_by_country(
-                    country_code.upper()), HTTPStatus.OK
+                data = cities_data.get_cities_by_country(country_code.upper())
             elif state_code:
-                return cities_data.get_cities_by_state(
-                    state_code.upper()), HTTPStatus.OK
+                data = cities_data.get_cities_by_state(state_code.upper())
             elif min_pop is not None or max_pop is not None:
-                return cities_data.get_cities_by_population_range(
-                    min_pop, max_pop), HTTPStatus.OK
+                data = cities_data.get_cities_by_population_range(
+                    min_pop, max_pop)
             else:
-                return cities_data.get_cities(), HTTPStatus.OK
+                data = cities_data.get_cities()
+
+            data = _apply_pagination(data, limit, offset)
+            return data, HTTPStatus.OK
         except Exception as e:
             cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
                             message=f"Database error: {str(e)}")

@@ -38,6 +38,23 @@ class TestCitiesEndpoints:
             assert data[0]['city_name'] == cities_data.TEST_CITY['city_name']
             mock_get.assert_called_once()
 
+    def test_get_cities_with_pagination(self, client):
+        """GET /cities supports limit/offset query params."""
+        another_city = {**cities_data.TEST_CITY, 'city_name': 'Another'}
+        with patch('data.cities.get_cities') as mock_get:
+            mock_get.return_value = [cities_data.TEST_CITY, another_city]
+
+            resp = client.get('/cities?limit=1&offset=1')
+
+            assert resp.status_code == HTTPStatus.OK
+            data = resp.get_json()
+            assert len(data) == 1
+            assert data[0]['city_name'] == 'Another'
+
+    def test_get_cities_invalid_limit(self, client):
+        resp = client.get('/cities?limit=-10')
+        assert resp.status_code == HTTPStatus.BAD_REQUEST
+
     def test_create_city_success(self, client):
         """POST /cities should create a city when parent state matches country."""
         sample_city = {

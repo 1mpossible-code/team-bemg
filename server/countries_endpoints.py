@@ -76,20 +76,62 @@ error_model = countries_ns.model(
     },
 )
 
+list_parser = reqparse.RequestParser()
+list_parser.add_argument(
+    "limit",
+    type=int,
+    required=False,
+    help="Maximum number of countries to return (positive integer)",
+    location="args",
+)
+list_parser.add_argument(
+    "offset",
+    type=int,
+    required=False,
+    help="Number of countries to skip from the start (>= 0)",
+    location="args",
+)
+
+
+def _validate_pagination(limit, offset):
+    if limit is not None and limit <= 0:
+        countries_ns.abort(
+            HTTPStatus.BAD_REQUEST, "limit must be a positive integer"
+        )
+    if offset is not None and offset < 0:
+        countries_ns.abort(
+            HTTPStatus.BAD_REQUEST, "offset must be zero or a positive integer"
+        )
+
+
+def _apply_pagination(results, limit, offset):
+    if offset:
+        results = results[offset:]
+    if limit:
+        results = results[:limit]
+    return results
+
 
 @countries_ns.route("")
 class CountriesList(Resource):
     """Countries collection endpoint"""
 
     @countries_ns.doc("list_countries")
+    @countries_ns.expect(list_parser)
     @countries_ns.marshal_list_with(country_model)
     def get(self):
         """
-        Retrieve all countries
-        Returns a list of all countries in the database.
+        Retrieve all countries with optional pagination.
         """
+        args = list_parser.parse_args()
+        limit = args.get("limit")
+        offset = args.get("offset")
+        _validate_pagination(limit, offset)
+
         try:
-            return countries_data.get_countries(), HTTPStatus.OK
+            data = countries_data.get_countries()
+            data = _apply_pagination(data, limit, offset)
+            return data, HTTPStatus.OK
         except Exception as e:
             countries_ns.abort(
                 HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"

@@ -134,15 +134,26 @@ def update(collection, filters, update_dict, db=SE_DB):
     return client[db][collection].update_one(filters, {"$set": update_dict})
 
 
+def _apply_pagination(cursor, limit=None, offset=None):
+    if offset is not None and offset > 0:
+        cursor = cursor.skip(offset)
+    if limit is not None and limit > 0:
+        cursor = cursor.limit(limit)
+    return cursor
+
+
 @ensure_connection
-def read(collection, db=SE_DB, no_id=True) -> list:
+def read(collection, db=SE_DB, no_id=True, limit=None, offset=None) -> list:
     """
-    Returns a list from the db.
+    Returns a list from the db with optional pagination.
     """
     ret = []
-    for doc in client[db][collection].find():
+    cursor = client[db][collection].find()
+    cursor = _apply_pagination(cursor, limit, offset)
+    for doc in cursor:
         if no_id:
-            del doc[MONGO_ID]
+            if MONGO_ID in doc:
+                del doc[MONGO_ID]
         else:
             convert_mongo_id(doc)
         ret.append(doc)
@@ -150,12 +161,15 @@ def read(collection, db=SE_DB, no_id=True) -> list:
 
 
 @ensure_connection
-def read_filtered(collection, filt: dict, db=SE_DB, no_id=True) -> list:
+def read_filtered(collection, filt: dict, db=SE_DB, no_id=True,
+                  limit=None, offset=None) -> list:
     """
     Returns a filtered list from the db using the provided filt dict.
     """
     ret = []
-    for doc in client[db][collection].find(filt):
+    cursor = client[db][collection].find(filt)
+    cursor = _apply_pagination(cursor, limit, offset)
+    for doc in cursor:
         if no_id:
             if MONGO_ID in doc:
                 del doc[MONGO_ID]

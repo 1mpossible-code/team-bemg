@@ -44,6 +44,23 @@ class TestStatesEndpoints:
             assert 'created_at' in data[0] and 'updated_at' in data[0]
             mock_get.assert_called_once()
 
+    def test_get_states_with_pagination(self, client):
+        """GET /states respects limit and offset query params."""
+        another_state = {**states_data.TEST_STATE, 'state_code': 'CA'}
+        with patch('data.states.get_states') as mock_get:
+            mock_get.return_value = [states_data.TEST_STATE, another_state]
+
+            resp = client.get('/states?limit=1&offset=1')
+
+            assert resp.status_code == HTTPStatus.OK
+            data = resp.get_json()
+            assert len(data) == 1
+            assert data[0]['state_code'] == 'CA'
+
+    def test_get_states_invalid_limit(self, client):
+        resp = client.get('/states?limit=-3')
+        assert resp.status_code == HTTPStatus.BAD_REQUEST
+
     def test_get_states_by_country_success(self, client):
         """GET /states/country/<code> returns filtered list."""
         with patch('data.states.get_states_by_country') as mock_get:

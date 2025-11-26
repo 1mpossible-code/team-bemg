@@ -65,6 +65,24 @@ class TestCountriesEndpoints:
             assert isinstance(data, list)
             mock_get.assert_called_once()
 
+    def test_get_all_countries_with_pagination(self, client):
+        """GET /countries supports limit and offset query parameters."""
+        second_country = {**countries.TEST_COUNTRY, countries.COUNTRY_CODE: 'ZZ'}
+        with patch('data.countries.get_countries') as mock_get:
+            mock_get.return_value = [countries.TEST_COUNTRY, second_country]
+
+            response = client.get('/countries?limit=1&offset=1')
+
+            assert response.status_code == HTTPStatus.OK
+            data = response.get_json()
+            assert len(data) == 1
+            assert data[0]['country_code'] == 'ZZ'
+
+    def test_get_all_countries_invalid_limit(self, client):
+        """GET /countries?limit=-1 returns 400."""
+        response = client.get('/countries?limit=-1')
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
     def test_get_all_countries_database_error(self, client):
         """Test database error when retrieving countries."""
         with patch('data.countries.get_countries') as mock_get:
