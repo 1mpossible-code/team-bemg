@@ -29,6 +29,10 @@ Visit `http://127.0.0.1:5000/healthz` and Swagger docs at the Flask-RESTX UI (ro
 - `GET /healthz` → simple liveness check returns `{"status": "ok"}`
 - `GET /readyz` → pings MongoDB and returns 200 if reachable (implemented in `server/app.py`)
 
+### Minimal UI explorer
+- `GET /ui/states` → existing state lookup page (manual testing)
+- `GET /ui/geo` → “Geo Explorer” page that fetches `/countries`, `/states`, and `/cities` with the same pagination params as the API; useful for sanity checks without Postman.
+
 ## Testing
 Run the test suite from the repo root:
 ```

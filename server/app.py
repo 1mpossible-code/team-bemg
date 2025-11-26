@@ -55,6 +55,10 @@ def create_app():
     def ui_states():
         return send_from_directory("static", "states.html")
 
+    @app.route("/ui/geo")
+    def ui_geo():
+        return send_from_directory("static", "geo.html")
+
     return app
 
 

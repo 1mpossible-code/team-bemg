@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Geo Explorer</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 20px;
+        color: #222;
+      }
+      h1 {
+        margin-bottom: 8px;
+      }
+      .columns {
+        display: flex;
+        gap: 20px;
+      }
+      .column {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px;
+        min-height: 400px;
+      }
+      .column h2 {
+        margin-top: 0;
+      }
+      ul {
+        list-style: none;
+        padding-left: 0;
+      }
+      li {
+        margin: 4px 0;
+        cursor: pointer;
+      }
+      li:hover {
+        text-decoration: underline;
+      }
+      .details {
+        font-size: 0.95rem;
+        margin-top: 8px;
+      }
+      .error {
+        color: #b00020;
+        margin-top: 6px;
+      }
+      input, select, button {
+        padding: 6px;
+        margin-right: 6px;
+      }
+      .muted {
+        color: #777;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Geographic Browser</h1>
+    <p class="muted">
+      This lightweight UI calls the same REST endpoints the backend exposes.
+      Pick a continent to load countries, then click a country to view its states,
+      and finally click a state to see sample cities. Pagination and filters match
+      the API contract (limit/offset).
+    </p>
+
+    <div>
+      <label>
+        Continent:
+        <select id="continentSelect">
+          <option value="All">All continents</option>
+          <option value="Africa">Africa</option>
+          <option value="Antarctica">Antarctica</option>
+          <option value="Asia">Asia</option>
+          <option value="Europe">Europe</option>
+          <option value="North America">North America</option>
+          <option value="Oceania">Oceania</option>
+          <option value="South America">South America</option>
+        </select>
+      </label>
+      <label>
+        Limit:
+        <input id="limitInput" type="number" min="1" value="20" />
+      </label>
+      <label>
+        Offset:
+        <input id="offsetInput" type="number" min="0" value="0" />
+      </label>
+      <button id="loadBtn">Load Countries</button>
+    </div>
+
+    <div class="columns">
+      <div class="column">
+        <h2>Countries</h2>
+        <div id="countriesError" class="error"></div>
+        <ul id="countriesList"></ul>
+      </div>
+
+      <div class="column">
+        <h2>States</h2>
+        <p class="muted" id="statesHint">Select a country to view its states.</p>
+        <div id="statesError" class="error"></div>
+        <ul id="statesList"></ul>
+      </div>
+
+      <div class="column">
+        <h2>Cities</h2>
+        <p class="muted" id="citiesHint">Select a state to view sample cities.</p>
+        <div id="citiesError" class="error"></div>
+        <ul id="citiesList"></ul>
+      </div>
+    </div>
+
+    <script>
+      const continentSelect = document.getElementById('continentSelect');
+      const limitInput = document.getElementById('limitInput');
+      const offsetInput = document.getElementById('offsetInput');
+      const loadBtn = document.getElementById('loadBtn');
+      const countriesList = document.getElementById('countriesList');
+      const statesList = document.getElementById('statesList');
+      const citiesList = document.getElementById('citiesList');
+      const countriesError = document.getElementById('countriesError');
+      const statesError = document.getElementById('statesError');
+      const citiesError = document.getElementById('citiesError');
+      const statesHint = document.getElementById('statesHint');
+      const citiesHint = document.getElementById('citiesHint');
+
+      let selectedCountry = null;
+      let selectedState = null;
+
+      function buildQuery(params) {
+        const search = new URLSearchParams();
+        for (const [k, v] of Object.entries(params)) {
+          if (v !== undefined && v !== null && v !== '') {
+            search.append(k, v);
+          }
+        }
+        return search.toString();
+      }
+
+      async function fetchJSON(url) {
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
+        }
+        return resp.json();
+      }
+
+      async function loadCountries() {
+        countriesError.textContent = '';
+        countriesList.innerHTML = '<li class="muted">Loading...</li>';
+        statesList.innerHTML = '';
+        citiesList.innerHTML = '';
+        statesHint.textContent = 'Select a country to view its states.';
+        citiesHint.textContent = 'Select a state to view sample cities.';
+        statesError.textContent = '';
+        citiesError.textContent = '';
+        selectedCountry = null;
+        selectedState = null;
+
+        try {
+          const limit = limitInput.value ? Number(limitInput.value) : undefined;
+          const offset = offsetInput.value ? Number(offsetInput.value) : undefined;
+          const continent = continentSelect.value;
+          const params = {
+            limit,
+            offset,
+          };
+          let url = '/countries';
+          if (continent !== 'All') {
+            url = `/countries/continent/${encodeURIComponent(continent)}`;
+          }
+          if (continent === 'All') {
+            const query = buildQuery(params);
+            if (query) {
+              url += `?${query}`;
+            }
+          }
+
+          const countries = await fetchJSON(url);
+          renderCountries(countries, limit, offset);
+        } catch (err) {
+          countriesError.textContent = err.message;
+          countriesList.innerHTML = '';
+        }
+      }
+
+      function renderCountries(list, limit, offset) {
+        countriesList.innerHTML = '';
+        if (!Array.isArray(list) || list.length === 0) {
+          countriesList.innerHTML = '<li class="muted">No countries found.</li>';
+          return;
+        }
+
+        list.forEach((country) => {
+          const li = document.createElement('li');
+          li.textContent = `${country.country_code} — ${country.country_name} (${country.continent})`;
+          li.title = `Capital: ${country.capital || 'N/A'}\nPopulation: ${country.population || 'N/A'}`;
+          li.addEventListener('click', () => {
+            selectedCountry = country;
+            loadStates(country.country_code);
+          });
+          countriesList.appendChild(li);
+        });
+      }
+
+      async function loadStates(countryCode) {
+        if (!countryCode) return;
+        statesError.textContent = '';
+        statesList.innerHTML = '<li class="muted">Loading...</li>';
+        citiesList.innerHTML = '';
+        citiesHint.textContent = 'Select a state to view sample cities.';
+        citiesError.textContent = '';
+        selectedState = null;
+
+        try {
+          const query = buildQuery({ limit: 50 });
+          const states = await fetchJSON(`/states?country_code=${countryCode}&${query}`);
+          renderStates(states);
+        } catch (err) {
+          statesError.textContent = err.message;
+          statesList.innerHTML = '';
+        }
+      }
+
+      function renderStates(list) {
+        statesList.innerHTML = '';
+        if (!Array.isArray(list) || list.length === 0) {
+          statesList.innerHTML = '<li class="muted">No states found.</li>';
+          return;
+        }
+
+        list.forEach((state) => {
+          const li = document.createElement('li');
+          li.textContent = `${state.state_code} — ${state.state_name}`;
+          li.title = `Capital: ${state.capital || 'N/A'}\nPopulation: ${state.population || 'N/A'}`;
+          li.addEventListener('click', () => {
+            selectedState = state;
+            loadCities(state.state_code);
+          });
+          statesList.appendChild(li);
+        });
+      }
+
+      async function loadCities(stateCode) {
+        if (!stateCode) return;
+        citiesError.textContent = '';
+        citiesList.innerHTML = '<li class="muted">Loading...</li>';
+
+        try {
+          const cities = await fetchJSON(`/cities/state/${stateCode}`);
+          renderCities(cities);
+        } catch (err) {
+          citiesError.textContent = err.message;
+          citiesList.innerHTML = '';
+        }
+      }
+
+      function renderCities(list) {
+        citiesList.innerHTML = '';
+        if (!Array.isArray(list) || list.length === 0) {
+          citiesList.innerHTML = '<li class="muted">No cities found.</li>';
+          return;
+        }
+
+        list.forEach((city) => {
+          const li = document.createElement('li');
+          li.textContent = `${city.city_name} (${city.state_code}, ${city.country_code})`;
+          li.title = `Population: ${city.population || 'N/A'}\nArea: ${city.area_km2 || 'N/A'}\n` +
+                     `Coordinates: ${city.coordinates ? `${city.coordinates.latitude}, ${city.coordinates.longitude}` : 'N/A'}`;
+          citiesList.appendChild(li);
+        });
+      }
+
+      loadBtn.addEventListener('click', () => {
+        loadCountries();
+      });
+
+      // Initial load
+      loadCountries();
+    </script>
+  </body>
+</html>
+
