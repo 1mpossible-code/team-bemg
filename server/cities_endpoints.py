@@ -32,10 +32,18 @@ list_parser.add_argument('min_population', type=int, required=False,
                          help='Filter by minimum population')
 list_parser.add_argument('max_population', type=int, required=False,
                          help='Filter by maximum population')
-list_parser.add_argument('limit', type=int, required=False,
-                         help='Maximum number of cities to return (positive integer)')
-list_parser.add_argument('offset', type=int, required=False,
-                          help='Number of cities to skip from the start (>= 0)')
+list_parser.add_argument(
+    'limit',
+    type=int,
+    required=False,
+    help='Maximum number of cities to return (positive integer)'
+)
+list_parser.add_argument(
+    'offset',
+    type=int,
+    required=False,
+    help='Number of cities to skip from the start (>= 0)'
+)
 
 city_model = cities_ns.model(
     'City',
