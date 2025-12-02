@@ -1,6 +1,7 @@
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_restx import Api
+from http import HTTPStatus
 
 from data import db_connect
 
@@ -48,7 +49,7 @@ def create_app():
 
     @app.route("/healthz")
     def healthz():
-        return {"status": "ok"}
+        return {"status": "ok"}, HTTPStatus.OK
 
     @app.route("/readyz")
     def readyz():
@@ -56,17 +57,20 @@ def create_app():
             # Ensure client is initialized, then ping using the returned client
             client = db_connect.connect_db()
             client.admin.command("ping")
-            return {"status": "ok"}
+            return {"status": "ok"}, HTTPStatus.OK
         except Exception as exc:
-            return {"status": "error", "detail": str(exc)}, 500
+            return (
+                {"status": "error", "detail": str(exc)},
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
     @app.route("/ui/states")
     def ui_states():
-        return send_from_directory("static", "states.html")
+        return send_from_directory("static", "states.html"), HTTPStatus.OK
 
     @app.route("/ui/geo")
     def ui_geo():
-        return send_from_directory("static", "geo.html")
+        return send_from_directory("static", "geo.html"), HTTPStatus.OK
 
     return app
 

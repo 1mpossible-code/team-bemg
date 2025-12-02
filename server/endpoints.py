@@ -3,38 +3,41 @@ This is the file containing all of the endpoints for our flask app.
 The endpoint called `endpoints` will return all available endpoints.
 """
 
+from http import HTTPStatus
+
 from flask_restx import Resource, Namespace
 
 import data.countries as countries_db
 import data.states as states_db
 
 # Create namespace for each resource
-general_ns = Namespace('general', description='General API operations')
+general_ns = Namespace("general", description="General API operations")
 countries_ns = Namespace(
-    'countries',
-    description='Operations related to countries')
-states_ns = Namespace('states', description='Operations related to states')
+    "countries", description="Operations related to countries"
+)
+states_ns = Namespace("states", description="Operations related to states")
 
 # Constants for endpoints and responses
-HELLO_EP = '/hello'
-HELLO_RESP = 'hello'
+HELLO_EP = "/hello"
+HELLO_RESP = "hello"
 
 
-@general_ns.route('/hello')
+@general_ns.route("/hello")
 class HelloWorld(Resource):
     """
     The purpose of the HelloWorld class is to have a simple test to see if the
     app is working at all.
     """
-    @general_ns.doc('hello_world')
+
+    @general_ns.doc("hello_world")
     def get(self):
         """
         A trivial endpoint to see if the server is running.
         """
-        return {'hello': 'world'}
+        return {"hello": "world"}, HTTPStatus.OK
 
 
-@countries_ns.route('/')
+@countries_ns.route("/")
 class CountryList(Resource):
     """
     Handles the endpoint for retrieving a list of all countries.
@@ -44,10 +47,10 @@ class CountryList(Resource):
         """
         Returns a list of all countries from the data layer.
         """
-        return countries_db.get_countries()
+        return countries_db.get_countries(), HTTPStatus.OK
 
 
-@states_ns.route('/')
+@states_ns.route("/")
 class StateList(Resource):
     """
     Handles the endpoint for retrieving a list of all states
@@ -57,17 +60,17 @@ class StateList(Resource):
         """
         Returns a list of all states from the data layer.
         """
-        return states_db.get_states()
+        return states_db.get_states(), HTTPStatus.OK
 
 
-@general_ns.route('/endpoints')
+@general_ns.route("/endpoints")
 class Endpoints(Resource):
     """
     This class will serve as live, fetchable documentation of what endpoints
     are available in the system.
     """
 
-    @general_ns.doc('list_endpoints')
+    @general_ns.doc("list_endpoints")
     def get(self):
         """
         The `get()` method will return a sorted list of available endpoints.
