@@ -12,7 +12,11 @@ import data.countries as countries_data
 import data.cities as cities_data
 from server.cities_endpoints import city_model
 from data.models import states_validator
-from server.helpers import apply_pagination, validate_pagination
+from server.helpers import (
+    apply_pagination,
+    validate_pagination,
+    validate_range_filters,
+)
 
 # Create namespace for states endpoints
 states_ns = Namespace('states', description='State operations')
@@ -123,6 +127,13 @@ class StatesList(Resource):
         limit = args.get('limit')
         offset = args.get('offset')
         validate_pagination(limit, offset, states_ns.abort)
+        validate_range_filters(
+            min_pop,
+            max_pop,
+            'min_population',
+            'max_population',
+            states_ns.abort,
+        )
 
         try:
             # Check which filter to apply

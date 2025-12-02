@@ -4,7 +4,11 @@ from http import HTTPStatus
 
 import data.cities as cities_data
 import data.states as states_data
-from server.helpers import apply_pagination, validate_pagination
+from server.helpers import (
+    apply_pagination,
+    validate_pagination,
+    validate_range_filters,
+)
 
 cities_ns = Namespace('cities', description='City operations')
 
@@ -113,6 +117,13 @@ class CitiesList(Resource):
         offset = args.get('offset')
 
         validate_pagination(limit, offset, cities_ns.abort)
+        validate_range_filters(
+            min_pop,
+            max_pop,
+            'min_population',
+            'max_population',
+            cities_ns.abort,
+        )
 
         try:
             if name_query:

@@ -68,3 +68,34 @@ def validate_pagination(
             HTTPStatus.BAD_REQUEST,
             "offset must be zero or a positive integer",
         )
+
+
+def validate_range_filters(
+    min_value: int | float | None,
+    max_value: int | float | None,
+    min_field: str,
+    max_field: str,
+    abort_func,
+) -> None:
+    """
+    Shared validation for min/max numeric filters to avoid wasted DB calls.
+    """
+    if min_value is not None and min_value < 0:
+        abort_func(
+            HTTPStatus.BAD_REQUEST,
+            f"{min_field} must be zero or a positive integer",
+        )
+    if max_value is not None and max_value < 0:
+        abort_func(
+            HTTPStatus.BAD_REQUEST,
+            f"{max_field} must be zero or a positive integer",
+        )
+    if (
+        min_value is not None
+        and max_value is not None
+        and min_value > max_value
+    ):
+        abort_func(
+            HTTPStatus.BAD_REQUEST,
+            f"{min_field} cannot be greater than {max_field}",
+        )

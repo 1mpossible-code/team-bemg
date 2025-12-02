@@ -61,6 +61,20 @@ class TestStatesEndpoints:
         resp = client.get('/states?limit=-3')
         assert resp.status_code == HTTPStatus.BAD_REQUEST
 
+    def test_get_states_invalid_population_range(self, client):
+        """min_population greater than max_population returns 400."""
+        with patch('data.states.get_states_by_population_range') as mock_get:
+            resp = client.get('/states?min_population=100&max_population=10')
+            assert resp.status_code == HTTPStatus.BAD_REQUEST
+            mock_get.assert_not_called()
+
+    def test_get_states_negative_population_filter(self, client):
+        """Negative population filters get rejected with 400."""
+        with patch('data.states.get_states_by_population_range') as mock_get:
+            resp = client.get('/states?min_population=-1')
+            assert resp.status_code == HTTPStatus.BAD_REQUEST
+            mock_get.assert_not_called()
+
     def test_get_states_by_country_success(self, client):
         """GET /states/country/<code> returns filtered list."""
         with patch('data.states.get_states_by_country') as mock_get:

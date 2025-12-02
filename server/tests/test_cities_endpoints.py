@@ -55,6 +55,20 @@ class TestCitiesEndpoints:
         resp = client.get('/cities?limit=-10')
         assert resp.status_code == HTTPStatus.BAD_REQUEST
 
+    def test_get_cities_invalid_population_range(self, client):
+        """Invalid min/max population should short-circuit with 400."""
+        with patch('data.cities.get_cities_by_population_range') as mock_get:
+            resp = client.get('/cities?min_population=100&max_population=10')
+            assert resp.status_code == HTTPStatus.BAD_REQUEST
+            mock_get.assert_not_called()
+
+    def test_get_cities_negative_population_filter(self, client):
+        """Negative population filters should be rejected."""
+        with patch('data.cities.get_cities_by_population_range') as mock_get:
+            resp = client.get('/cities?min_population=-5')
+            assert resp.status_code == HTTPStatus.BAD_REQUEST
+            mock_get.assert_not_called()
+
     def test_create_city_success(self, client):
         """POST /cities should create a city when parent state matches country."""
         sample_city = {
