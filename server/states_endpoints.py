@@ -6,11 +6,13 @@ Provides full CRUD operations with Swagger documentation.
 from flask import request
 from flask_restx import Resource, fields, Namespace, reqparse
 from http import HTTPStatus
+
 import data.states as states_data
 import data.countries as countries_data
 import data.cities as cities_data
 from server.cities_endpoints import city_model
 from data.models import states_validator
+from server.helpers import apply_pagination, validate_pagination
 
 # Create namespace for states endpoints
 states_ns = Namespace('states', description='State operations')
@@ -101,25 +103,6 @@ list_parser.add_argument(
     location='args')
 
 
-def _validate_pagination(limit, offset):
-    if limit is not None and limit <= 0:
-        states_ns.abort(
-            HTTPStatus.BAD_REQUEST, "limit must be a positive integer"
-        )
-    if offset is not None and offset < 0:
-        states_ns.abort(
-            HTTPStatus.BAD_REQUEST, "offset must be zero or a positive integer"
-        )
-
-
-def _apply_pagination(results, limit, offset):
-    if offset:
-        results = results[offset:]
-    if limit:
-        results = results[:limit]
-    return results
-
-
 @states_ns.route('')
 class StatesList(Resource):
     """States collection endpoint"""
@@ -139,7 +122,7 @@ class StatesList(Resource):
         max_pop = args.get('max_population')
         limit = args.get('limit')
         offset = args.get('offset')
-        _validate_pagination(limit, offset)
+        validate_pagination(limit, offset, states_ns.abort)
 
         try:
             # Check which filter to apply
@@ -153,7 +136,7 @@ class StatesList(Resource):
                 # No filters, get all states
                 states = states_data.get_states()
 
-            states = _apply_pagination(states, limit, offset)
+            states = apply_pagination(states, limit, offset)
             return states, HTTPStatus.OK
 
         except Exception as e:

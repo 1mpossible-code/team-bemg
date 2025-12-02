@@ -1,8 +1,10 @@
 from flask import request
 from flask_restx import Resource, fields, Namespace, reqparse
 from http import HTTPStatus
+
 import data.cities as cities_data
 import data.states as states_data
+from server.helpers import apply_pagination, validate_pagination
 
 cities_ns = Namespace('cities', description='City operations')
 
@@ -20,7 +22,6 @@ coordinate_model = cities_ns.model('Coordinate', {
                               example=-74.0060)
 })
 
-# Parser for query parameters
 list_parser = reqparse.RequestParser()
 list_parser.add_argument('name', type=str, required=False,
                          help='Search cities by name (partial match)')
@@ -95,25 +96,6 @@ error_model = cities_ns.model('Error', {
 })
 
 
-def _validate_pagination(limit, offset):
-    if limit is not None and limit <= 0:
-        cities_ns.abort(
-            HTTPStatus.BAD_REQUEST, "limit must be a positive integer"
-        )
-    if offset is not None and offset < 0:
-        cities_ns.abort(
-            HTTPStatus.BAD_REQUEST, "offset must be zero or a positive integer"
-        )
-
-
-def _apply_pagination(results, limit, offset):
-    if offset:
-        results = results[offset:]
-    if limit:
-        results = results[:limit]
-    return results
-
-
 @cities_ns.route('')
 class CitiesList(Resource):
 
@@ -130,7 +112,7 @@ class CitiesList(Resource):
         limit = args.get('limit')
         offset = args.get('offset')
 
-        _validate_pagination(limit, offset)
+        validate_pagination(limit, offset, cities_ns.abort)
 
         try:
             if name_query:
@@ -145,7 +127,7 @@ class CitiesList(Resource):
             else:
                 data = cities_data.get_cities()
 
-            data = _apply_pagination(data, limit, offset)
+            data = apply_pagination(data, limit, offset)
             return data, HTTPStatus.OK
         except Exception as e:
             cities_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,

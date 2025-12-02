@@ -7,6 +7,23 @@ from data import db_connect
 import logging
 
 
+def register_namespaces(api: Api) -> None:
+    """
+    Central place to register all Flask-RESTX namespaces.
+
+    This keeps app creation clean and makes it easy to see what routes exist.
+    """
+    from server.countries_endpoints import countries_ns
+    from server.endpoints import general_ns
+    from server.states_endpoints import states_ns
+    from server.cities_endpoints import cities_ns
+
+    api.add_namespace(countries_ns, path="/countries")
+    api.add_namespace(general_ns, path="/")
+    api.add_namespace(states_ns, path="/states")
+    api.add_namespace(cities_ns, path="/cities")
+
+
 def create_app():
     app = Flask(__name__)
     # Connection will be established automatically by @ensure_connection
@@ -14,8 +31,8 @@ def create_app():
 
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s [%(levelname)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
     CORS(app)
@@ -26,16 +43,8 @@ def create_app():
         description="CRUD for countries, states, cities",
     )
 
-    # Register API namespaces
-    from server.countries_endpoints import countries_ns
-    from server.endpoints import general_ns
-    from server.states_endpoints import states_ns
-    from server.cities_endpoints import cities_ns
-
-    api.add_namespace(countries_ns, path="/countries")
-    api.add_namespace(general_ns, path="/")
-    api.add_namespace(states_ns, path="/states")
-    api.add_namespace(cities_ns, path="/cities")
+    # Register API namespaces in one place
+    register_namespaces(api)
 
     @app.route("/healthz")
     def healthz():

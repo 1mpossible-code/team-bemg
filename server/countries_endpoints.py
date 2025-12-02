@@ -6,10 +6,12 @@ Provides full CRUD operations with Swagger documentation.
 from flask import request
 from flask_restx import Resource, fields, Namespace, reqparse
 from http import HTTPStatus
+
 import data.countries as countries_data
 import data.states as states_data
 from data.countries import VALID_CONTINENTS
 from server.states_endpoints import state_model
+from server.helpers import apply_pagination, validate_pagination
 
 # Create namespace for countries endpoints
 countries_ns = Namespace("countries", description="Country operations")
@@ -93,25 +95,6 @@ list_parser.add_argument(
 )
 
 
-def _validate_pagination(limit, offset):
-    if limit is not None and limit <= 0:
-        countries_ns.abort(
-            HTTPStatus.BAD_REQUEST, "limit must be a positive integer"
-        )
-    if offset is not None and offset < 0:
-        countries_ns.abort(
-            HTTPStatus.BAD_REQUEST, "offset must be zero or a positive integer"
-        )
-
-
-def _apply_pagination(results, limit, offset):
-    if offset:
-        results = results[offset:]
-    if limit:
-        results = results[:limit]
-    return results
-
-
 @countries_ns.route("")
 class CountriesList(Resource):
     """Countries collection endpoint"""
@@ -126,11 +109,11 @@ class CountriesList(Resource):
         args = list_parser.parse_args()
         limit = args.get("limit")
         offset = args.get("offset")
-        _validate_pagination(limit, offset)
+        validate_pagination(limit, offset, countries_ns.abort)
 
         try:
             data = countries_data.get_countries()
-            data = _apply_pagination(data, limit, offset)
+            data = apply_pagination(data, limit, offset)
             return data, HTTPStatus.OK
         except Exception as e:
             countries_ns.abort(

@@ -68,7 +68,8 @@ class TestCities:
             mock_collection = mock_client.__getitem__().__getitem__()
             mock_collection.find.return_value = [cities.TEST_CITY]
             result = cities.get_cities_by_country('US')
-            mock_collection.find.assert_called_once_with({cities.COUNTRY_CODE: 'US'})
+            mock_collection.find.assert_called_once_with(
+                {cities.COUNTRY_CODE: 'US'})
             assert result == [cities.TEST_CITY]
 
     def test_get_cities_by_state(self):
@@ -77,7 +78,8 @@ class TestCities:
             mock_collection = mock_client.__getitem__().__getitem__()
             mock_collection.find.return_value = [cities.TEST_CITY]
             result = cities.get_cities_by_state('IL')
-            mock_collection.find.assert_called_once_with({cities.STATE_CODE: 'IL'})
+            mock_collection.find.assert_called_once_with(
+                {cities.STATE_CODE: 'IL'})
             assert result == [cities.TEST_CITY]
 
     def test_get_cities_by_country_empty(self):
@@ -86,7 +88,8 @@ class TestCities:
             mock_collection = mock_client.__getitem__().__getitem__()
             mock_collection.find.return_value = []
             result = cities.get_cities_by_country('XX')
-            mock_collection.find.assert_called_once_with({cities.COUNTRY_CODE: 'XX'})
+            mock_collection.find.assert_called_once_with(
+                {cities.COUNTRY_CODE: 'XX'})
             assert result == []
 
     def test_get_cities_by_state_empty(self):
@@ -95,7 +98,8 @@ class TestCities:
             mock_collection = mock_client.__getitem__().__getitem__()
             mock_collection.find.return_value = []
             result = cities.get_cities_by_state('XX')
-            mock_collection.find.assert_called_once_with({cities.STATE_CODE: 'XX'})
+            mock_collection.find.assert_called_once_with(
+                {cities.STATE_CODE: 'XX'})
             assert result == []
 
     def test_get_cities_by_population_range_min_only(self):
@@ -104,7 +108,8 @@ class TestCities:
             mock_collection = mock_client.__getitem__().__getitem__()
             mock_collection.find.return_value = [cities.TEST_CITY]
             result = cities.get_cities_by_population_range(min_pop=100000)
-            mock_collection.find.assert_called_once_with({cities.POPULATION: {'$gte': 100000}})
+            mock_collection.find.assert_called_once_with(
+                {cities.POPULATION: {'$gte': 100000}})
             assert result == [cities.TEST_CITY]
 
     def test_get_cities_by_population_range_max_only(self):
@@ -113,7 +118,8 @@ class TestCities:
             mock_collection = mock_client.__getitem__().__getitem__()
             mock_collection.find.return_value = [cities.TEST_CITY]
             result = cities.get_cities_by_population_range(max_pop=200000)
-            mock_collection.find.assert_called_once_with({cities.POPULATION: {'$lte': 200000}})
+            mock_collection.find.assert_called_once_with(
+                {cities.POPULATION: {'$lte': 200000}})
             assert result == [cities.TEST_CITY]
 
     def test_get_cities_by_population_range(self):
@@ -121,7 +127,8 @@ class TestCities:
         with patch('data.db_connect.client') as mock_client:
             mock_collection = mock_client.__getitem__().__getitem__()
             mock_collection.find.return_value = [cities.TEST_CITY]
-            result = cities.get_cities_by_population_range(min_pop=50000, max_pop=500000)
+            result = cities.get_cities_by_population_range(
+                min_pop=50000, max_pop=500000)
             mock_collection.find.assert_called_once_with({
                 cities.POPULATION: {'$gte': 50000, '$lte': 500000}
             })
@@ -141,7 +148,9 @@ class TestCities:
         with patch('data.db_connect.read_one') as mock_read_one:
             mock_read_one.return_value = cities.TEST_CITY
             result = cities.get_city_by_name('Springfield')
-            mock_read_one.assert_called_once_with(cities.CITIES_COLLECT, {cities.CITY_NAME: 'Springfield'})
+            mock_read_one.assert_called_once_with(
+                cities.CITIES_COLLECT, {
+                    cities.CITY_NAME: 'Springfield'})
             assert result == cities.TEST_CITY
 
     def test_get_city_by_name_and_country(self):
@@ -150,7 +159,7 @@ class TestCities:
             mock_read_one.return_value = cities.TEST_CITY
             result = cities.get_city_by_name_and_country('Springfield', 'US')
             mock_read_one.assert_called_once_with(
-                cities.CITIES_COLLECT, 
+                cities.CITIES_COLLECT,
                 {cities.CITY_NAME: 'Springfield', cities.COUNTRY_CODE: 'US'}
             )
             assert result == cities.TEST_CITY
@@ -168,27 +177,33 @@ class TestCities:
 
     # ===== Create operations tests =====
 
-    def test_add_city_success_with_state(self, sample_city_with_state, mock_acknowledged_result):
+    def test_add_city_success_with_state(
+            self,
+            sample_city_with_state,
+            mock_acknowledged_result):
         """Test successfully adding a new city with state."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-             patch('data.db_connect.create') as mock_create:
+                patch('data.db_connect.create') as mock_create:
             mock_get.return_value = None
             mock_create.return_value = mock_acknowledged_result
-            
+
             result = cities.add_city(sample_city_with_state)
             assert result is True
-            mock_create.assert_called_once_with(cities.CITIES_COLLECT, sample_city_with_state)
+            mock_create.assert_called_once_with(
+                cities.CITIES_COLLECT, sample_city_with_state)
 
-    def test_add_city_success_without_state(self, sample_city_no_state, mock_acknowledged_result):
+    def test_add_city_success_without_state(
+            self, sample_city_no_state, mock_acknowledged_result):
         """Test successfully adding a new city without state."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
-             patch('data.db_connect.create') as mock_create:
+                patch('data.db_connect.create') as mock_create:
             mock_get.return_value = None
             mock_create.return_value = mock_acknowledged_result
-            
+
             result = cities.add_city(sample_city_no_state)
             assert result is True
-            mock_create.assert_called_once_with(cities.CITIES_COLLECT, sample_city_no_state)
+            mock_create.assert_called_once_with(
+                cities.CITIES_COLLECT, sample_city_no_state)
 
     def test_add_city_missing_required_field(self):
         """Test adding a city with missing required field."""
@@ -224,15 +239,18 @@ class TestCities:
 
     # ===== Update operations tests =====
 
-    def test_update_city_success(self, sample_city_with_state, mock_modified_result):
+    def test_update_city_success(
+            self,
+            sample_city_with_state,
+            mock_modified_result):
         """Test successfully updating a city."""
         update_data = {cities.POPULATION: 120000}
-        
+
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-             patch('data.db_connect.update') as mock_update:
+                patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_with_state
             mock_update.return_value = mock_modified_result
-            
+
             result = cities.update_city('Springfield', 'IL', update_data)
             assert result is True
             mock_update.assert_called_once_with(
@@ -245,18 +263,22 @@ class TestCities:
         """Test updating a city that doesn't exist."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get:
             mock_get.return_value = None  # City doesn't exist
-            
+
             result = cities.update_city('Nowhere', 'XX', {})
             assert result is False
 
-    def test_update_city_strips_name_from_update(self, sample_city_with_state, mock_modified_result):
+    def test_update_city_strips_name_from_update(
+            self, sample_city_with_state, mock_modified_result):
         """Test update removes CITY_NAME before calling update."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-             patch('data.db_connect.update') as mock_update:
+                patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_with_state
             mock_update.return_value = mock_modified_result
-            payload = {cities.CITY_NAME: 'NewName', cities.POPULATION: 123, cities.UPDATED_AT: datetime.now()}
-            
+            payload = {
+                cities.CITY_NAME: 'NewName',
+                cities.POPULATION: 123,
+                cities.UPDATED_AT: datetime.now()}
+
             result = cities.update_city('Springfield', 'IL', payload)
             assert result is True
             mock_update.assert_called_once_with(
@@ -265,14 +287,18 @@ class TestCities:
                 {cities.POPULATION: 123, cities.UPDATED_AT: payload[cities.UPDATED_AT]}
             )
 
-    def test_update_city_strips_state_code_from_update(self, sample_city_with_state, mock_modified_result):
+    def test_update_city_strips_state_code_from_update(
+            self, sample_city_with_state, mock_modified_result):
         """Test update removes STATE_CODE before calling update."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-             patch('data.db_connect.update') as mock_update:
+                patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_with_state
             mock_update.return_value = mock_modified_result
-            payload = {cities.STATE_CODE: 'XX', cities.POPULATION: 123, cities.UPDATED_AT: datetime.now()}
-            
+            payload = {
+                cities.STATE_CODE: 'XX',
+                cities.POPULATION: 123,
+                cities.UPDATED_AT: datetime.now()}
+
             result = cities.update_city('Springfield', 'IL', payload)
             assert result is True
             mock_update.assert_called_once_with(
@@ -281,16 +307,18 @@ class TestCities:
                 {cities.POPULATION: 123, cities.UPDATED_AT: payload[cities.UPDATED_AT]}
             )
 
-    def test_update_city_by_name_and_country_success(self, sample_city_no_state, mock_modified_result):
+    def test_update_city_by_name_and_country_success(
+            self, sample_city_no_state, mock_modified_result):
         """Test successfully updating a city by name and country."""
         update_data = {cities.POPULATION: 40000}
-        
+
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
-             patch('data.db_connect.update') as mock_update:
+                patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_no_state
             mock_update.return_value = mock_modified_result
-            
-            result = cities.update_city_by_name_and_country('Monaco', 'MC', update_data)
+
+            result = cities.update_city_by_name_and_country(
+                'Monaco', 'MC', update_data)
             assert result is True
             mock_update.assert_called_once_with(
                 cities.CITIES_COLLECT,
@@ -302,19 +330,22 @@ class TestCities:
         """Test updating a city by name and country that doesn't exist."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get:
             mock_get.return_value = None
-            
-            result = cities.update_city_by_name_and_country('Nowhere', 'XX', {})
+
+            result = cities.update_city_by_name_and_country(
+                'Nowhere', 'XX', {})
             assert result is False
 
-    def test_update_city_by_name_and_country_strips_name(self, sample_city_no_state, mock_modified_result):
+    def test_update_city_by_name_and_country_strips_name(
+            self, sample_city_no_state, mock_modified_result):
         """Test update by country removes CITY_NAME before calling update."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
-             patch('data.db_connect.update') as mock_update:
+                patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_no_state
             mock_update.return_value = mock_modified_result
             payload = {cities.CITY_NAME: 'NewName', cities.POPULATION: 123}
-            
-            result = cities.update_city_by_name_and_country('Monaco', 'MC', payload)
+
+            result = cities.update_city_by_name_and_country(
+                'Monaco', 'MC', payload)
             assert result is True
             mock_update.assert_called_once_with(
                 cities.CITIES_COLLECT,
@@ -322,15 +353,17 @@ class TestCities:
                 {cities.POPULATION: 123}
             )
 
-    def test_update_city_by_name_and_country_strips_country_code(self, sample_city_no_state, mock_modified_result):
+    def test_update_city_by_name_and_country_strips_country_code(
+            self, sample_city_no_state, mock_modified_result):
         """Test update by country removes COUNTRY_CODE before calling update."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
-             patch('data.db_connect.update') as mock_update:
+                patch('data.db_connect.update') as mock_update:
             mock_get.return_value = sample_city_no_state
             mock_update.return_value = mock_modified_result
             payload = {cities.COUNTRY_CODE: 'XX', cities.POPULATION: 123}
-            
-            result = cities.update_city_by_name_and_country('Monaco', 'MC', payload)
+
+            result = cities.update_city_by_name_and_country(
+                'Monaco', 'MC', payload)
             assert result is True
             mock_update.assert_called_once_with(
                 cities.CITIES_COLLECT,
@@ -344,7 +377,7 @@ class TestCities:
         """Test successfully deleting a city."""
         with patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 1
-            
+
             result = cities.delete_city('Springfield', 'IL')
             assert result is True
             mock_delete.assert_called_once_with(
@@ -356,7 +389,7 @@ class TestCities:
         """Test deleting a city that doesn't exist."""
         with patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 0  # No documents deleted
-            
+
             result = cities.delete_city('Nowhere', 'XX')
             assert result is False
 
@@ -364,7 +397,7 @@ class TestCities:
         """Test successfully deleting a city by name and country."""
         with patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 1  # One document deleted
-            
+
             result = cities.delete_city_by_name_and_country('Monaco', 'MC')
             assert result is True
             mock_delete.assert_called_once_with(
@@ -376,7 +409,7 @@ class TestCities:
         """Test deleting a city by name and country that doesn't exist."""
         with patch('data.db_connect.delete') as mock_delete:
             mock_delete.return_value = 0
-            
+
             result = cities.delete_city_by_name_and_country('Nowhere', 'XX')
             assert result is False
 
@@ -386,7 +419,7 @@ class TestCities:
         """Test checking if a city exists by name and state."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get:
             mock_get.return_value = cities.TEST_CITY
-            
+
             result = cities.city_exists('Springfield', state_code='IL')
             assert result is True
 
@@ -394,7 +427,7 @@ class TestCities:
         """Test checking if a city exists by name and state - returns False."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get:
             mock_get.return_value = None
-            
+
             result = cities.city_exists('Nowhere', state_code='XX')
             assert result is False
 
@@ -402,7 +435,7 @@ class TestCities:
         """Test checking if a city exists by name and country."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get:
             mock_get.return_value = cities.TEST_CITY
-            
+
             result = cities.city_exists('Monaco', country_code='MC')
             assert result is True
 
@@ -410,7 +443,7 @@ class TestCities:
         """Test checking if a city exists by name and country - returns False."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get:
             mock_get.return_value = None
-            
+
             result = cities.city_exists('Nowhere', country_code='XX')
             assert result is False
 
@@ -418,7 +451,7 @@ class TestCities:
         """Test checking if a city exists by name only."""
         with patch('data.cities.get_city_by_name') as mock_get:
             mock_get.return_value = cities.TEST_CITY
-            
+
             result = cities.city_exists('Springfield')
             assert result is True
 
@@ -426,7 +459,7 @@ class TestCities:
         """Test checking if a city exists by name only - returns False."""
         with patch('data.cities.get_city_by_name') as mock_get:
             mock_get.return_value = None
-            
+
             result = cities.city_exists('Nowhere')
             assert result is False
 
@@ -441,7 +474,8 @@ class TestCities:
         # This would require:
         # 1. A running MongoDB instance with 2dsphere index on coordinates
         # 2. Real city data with valid lat/long coordinates
-        # 3. Testing queries like "find all cities within 50km of these coordinates"
+        # 3. Testing queries like "find all cities within 50km of these
+        # coordinates"
         pass
 
     # ===== Input Sanitization tests =====
@@ -449,43 +483,44 @@ class TestCities:
     def test_add_city_sanitizes_whitespace(self, mock_acknowledged_result):
         """Test that add_city strips whitespace and normalizes codes."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-             patch('data.db_connect.create', return_value=mock_acknowledged_result):
+                patch('data.db_connect.create', return_value=mock_acknowledged_result):
             mock_get.return_value = None
-            
+
             city_data = {
                 cities.CITY_NAME: '  Springfield  ',
                 cities.STATE_CODE: ' il ',
                 cities.COUNTRY_CODE: ' us '
             }
             cities.add_city(city_data)
-            
+
             # Verify sanitization
             assert city_data[cities.CITY_NAME] == 'Springfield'
             assert city_data[cities.STATE_CODE] == 'IL'
             assert city_data[cities.COUNTRY_CODE] == 'US'
-    
+
     def test_add_city_collapses_spaces(self, mock_acknowledged_result):
         """Test that add_city collapses multiple spaces in name."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-             patch('data.db_connect.create', return_value=mock_acknowledged_result):
+                patch('data.db_connect.create', return_value=mock_acknowledged_result):
             mock_get.return_value = None
-            
+
             city_data = {
                 cities.CITY_NAME: 'New  York  City',
                 cities.STATE_CODE: 'NY',
                 cities.COUNTRY_CODE: 'US'
             }
             cities.add_city(city_data)
-            
+
             assert city_data[cities.CITY_NAME] == 'New York City'
-    
-    def test_update_city_sanitizes_country_code(self, sample_city_with_state, mock_modified_result):
+
+    def test_update_city_sanitizes_country_code(
+            self, sample_city_with_state, mock_modified_result):
         """Test that update_city sanitizes country code."""
         with patch('data.cities.get_city_by_name_and_state', return_value=sample_city_with_state), \
-             patch('data.db_connect.update', return_value=mock_modified_result):
-            
+                patch('data.db_connect.update', return_value=mock_modified_result):
+
             update_data = {cities.COUNTRY_CODE: ' ca '}
             cities.update_city('Springfield', 'IL', update_data)
-            
+
             # Verify sanitization occurred
             assert update_data[cities.COUNTRY_CODE] == 'CA'

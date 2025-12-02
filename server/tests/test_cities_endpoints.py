@@ -161,7 +161,8 @@ class TestCitiesEndpoints:
             assert response.status_code == HTTPStatus.OK
             mock_get.assert_called_with(1000, None)
 
-    def test_get_cities_filter_by_country_normalizes_uppercase(self, client, sample_city):
+    def test_get_cities_filter_by_country_normalizes_uppercase(
+            self, client, sample_city):
         """GET /cities?country_code=us should uppercase to 'US' in data call."""
         with patch('data.cities.get_cities_by_country') as mock_get:
             mock_get.return_value = [sample_city]
@@ -206,6 +207,7 @@ class TestCitiesEndpoints:
         with patch('data.cities.get_cities_by_state', side_effect=Exception('db error')):
             resp = client.get('/cities/state/NY')
             assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
     def test_update_city_success(self, client):
         """PUT /cities/<state_code>/<city_name> should return 200."""
         city = cities_data.TEST_CITY
