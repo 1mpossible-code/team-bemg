@@ -193,9 +193,9 @@ def delete_state(code: str) -> bool:
     Delete a state by its code.
     Cascading: Deletes all cities in this state first.
     """
-
-    if not can_delete_state(code)[0]:
-        raise ValueError(can_delete_state(code)[1])
+    can_delete, reason = can_delete_state(code)
+    if not can_delete:
+        raise ValueError(reason)
 
     cities.delete_cities_by_state(code)
 

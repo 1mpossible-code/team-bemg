@@ -275,9 +275,11 @@ class TestStates:
 
     def test_delete_state_with_dependent_cities(self):
         """Test that deleting a state with cities raises ValueError."""
-        with patch("data.states.get_dependent_cities_count", return_value=10):
-            with pytest.raises(ValueError, match="Cannot delete: 10 city"):
+        reason = "Cannot delete: 2 city/cities depend on this state"
+        with patch("data.states.can_delete_state", return_value=(False, reason)) as mock_can_delete:
+            with pytest.raises(ValueError, match="Cannot delete: 2 city"):
                 S.delete_state("NY")
+            mock_can_delete.assert_called_once_with("NY")
 
     def test_can_delete_state_with_dependencies(self):
         """Test can_delete_state returns False when cities exist."""
