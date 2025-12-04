@@ -23,6 +23,10 @@ client = None
 
 MONGO_ID = "_id"
 
+DEFAULT_SERVER_SELECTION_TIMEOUT_MS = 5000
+DEFAULT_CONNECT_TIMEOUT_MS = 5000
+DEFAULT_SOCKET_TIMEOUT_MS = 20000  
+
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -32,10 +36,35 @@ def connect_db() -> pm.MongoClient:
     """
     This provides a uniform way to connect to the DB across all uses.
     Returns a mongo client object and sets the global client variable.
+    
+    Connection timeouts can be configured via environment variables:
+    - MONGO_SERVER_SELECTION_TIMEOUT_MS (default: 5000ms)
+    - MONGO_CONNECT_TIMEOUT_MS (default: 5000ms)
+    - MONGO_SOCKET_TIMEOUT_MS (default: 20000ms)
     """
     global client
     if client is None:
         logger.info("Setting client because it is None.")
+        
+        # Get timeout settings from environment or use defaults
+        server_selection_timeout_ms = int(
+            os.getenv("MONGO_SERVER_SELECTION_TIMEOUT_MS", DEFAULT_SERVER_SELECTION_TIMEOUT_MS)
+        )
+        connect_timeout_ms = int(
+            os.getenv("MONGO_CONNECT_TIMEOUT_MS", DEFAULT_CONNECT_TIMEOUT_MS)
+        )
+        socket_timeout_ms = int(
+            os.getenv("MONGO_SOCKET_TIMEOUT_MS", DEFAULT_SOCKET_TIMEOUT_MS)
+        )
+        
+        # Common connection options for all connections
+        connection_options = {
+            "serverSelectionTimeoutMS": server_selection_timeout_ms,
+            "connectTimeoutMS": connect_timeout_ms,
+            "socketTimeoutMS": socket_timeout_ms,
+            "tlsCAFile": certifi.where()
+        }
+        
         if os.getenv("CLOUD_MONGO", LOCAL) == CLOUD:
             uri = os.getenv("ATLAS_MONGO_DB_URI")
             if not uri:
@@ -44,20 +73,17 @@ def connect_db() -> pm.MongoClient:
                 )
             else:
                 logger.info("Connecting to Cloud Atlas MongoDB.")
-                client = pm.MongoClient(uri)
+                client = pm.MongoClient(uri, **connection_options)
+                logger.info("Successfully connected to Cloud Atlas MongoDB")
         else:
-            mongo_uri = os.getenv("MONGO_URI")
+            mongo_uri = os.getenv("LOCAL_MONGO_DB_URI")
             if mongo_uri:
                 redacted = mongo_uri
                 if "@" in mongo_uri:
                     redacted = mongo_uri.split("@")[-1]
                 logger.info(f"Connecting to Mongo locally using custom URI: {redacted}")
-                client = pm.MongoClient(mongo_uri,
-                                        tlsCAFile=certifi.where())
-            else:
-                logger.info("Connecting to Mongo locally on mongodb://localhost:27017.")
-                client = pm.MongoClient("mongodb://localhost:27017",
-                                        tlsCAFile=certifi.where())
+                client = pm.MongoClient(mongo_uri, **connection_options)
+                logger.info("Successfully connected to local MongoDB")
     return client
 
 
