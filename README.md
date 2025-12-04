@@ -56,7 +56,19 @@ export MONGO_URI='mongodb://<user>:<pass>@localhost:27017/?authSource=admin'
 
 ## Seed Mongo with sample data
 
-Follow `docs/LocalMongoTesting.md` to run MongoDB in Docker, import a lightweight slice of the [Countries States Cities Database](https://github.com/dr5hn/countries-states-cities-database/tree/master), and try the CRUD endpoints end-to-end.
+You can quickly load demo data from JSON backups using the small helper script in `scripts/seed_db.py`.
+
+Backups are expected under `data/bkup/` with names like `games.json`, `users.json`, `countries.json`, `states.json`, `cities.json`. Each file should contain either a single JSON object or a list of objects.
+
+Example usage (from the repo root, with your virtualenv activated):
+
+```bash
+python scripts/seed_db.py --dry-run           # show how many docs would be inserted
+python scripts/seed_db.py                    # seed all known backups
+python scripts/seed_db.py --only countries   # seed just countries from data/bkup/countries.json
+```
+
+For a more complete walkthrough (including running MongoDB in Docker and importing a larger slice of the [Countries States Cities Database](https://github.com/dr5hn/countries-states-cities-database/tree/master)), see `docs/LocalMongoTesting.md`.
 
 ## Common issues
 - Module import errors (e.g., `No module named server`): run commands from the repo root or set `PYTHONPATH=.`

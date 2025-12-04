@@ -18,14 +18,15 @@ from data import db_connect as dbc
 
 
 # Map JSON filenames (without extension) to Mongo collection names.
-# You can extend this mapping as you add more backup files.
+# Backups are expected at data/bkup/<stem>.json for each entry here.
 FILE_TO_COLLECTION = {
+    # Demo/sample data
     "games": "games",
     "users": "users",
-    # Example for future geo data backups:
-    # "countries": "countries",
-    # "states": "states",
-    # "cities": "cities",
+    # Geo data used by the main API
+    "countries": "countries",
+    "states": "states",
+    "cities": "cities",
 }
 
 
