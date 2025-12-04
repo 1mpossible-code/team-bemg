@@ -6,10 +6,13 @@ We may be required to use a new database at any point.
 import logging
 import os
 from functools import wraps
+import certifi
+from typing import Any, Callable, Dict, List, Optional
 
 import pymongo as pm
 from dotenv import load_dotenv
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.results import InsertOneResult, UpdateResult
 
 LOCAL = "0"
 CLOUD = "1"
@@ -25,22 +28,19 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 
-def connect_db():
+def connect_db() -> pm.MongoClient:
     """
     This provides a uniform way to connect to the DB across all uses.
-    Returns a mongo client object... maybe we shouldn't?
-    Also set global client variable.
-    We should probably either return a client OR set a
-    client global.
+    Returns a mongo client object and sets the global client variable.
     """
     global client
     if client is None:
-        print("Setting client because it is None.")
+        logger.info("Setting client because it is None.")
         if os.getenv("CLOUD_MONGO", LOCAL) == CLOUD:
-            uri = os.getenv("ALTAS_MONGO_DB_URI")
+            uri = os.getenv("ATLAS_MONGO_DB_URI")
             if not uri:
                 raise ValueError(
-                    "You must set your ALTAS_MONGO_DB_URI in cloud config."
+                    "You must set your ATLAS_MONGO_DB_URI in cloud config."
                 )
             else:
                 logger.info("Connecting to Cloud Atlas MongoDB.")
@@ -51,22 +51,24 @@ def connect_db():
                 redacted = mongo_uri
                 if "@" in mongo_uri:
                     redacted = mongo_uri.split("@")[-1]
-                print(f"Connecting to Mongo locally using custom URI: {redacted}")
-                client = pm.MongoClient(mongo_uri)
+                logger.info(f"Connecting to Mongo locally using custom URI: {redacted}")
+                client = pm.MongoClient(mongo_uri,
+                                        tlsCAFile=certifi.where())
             else:
                 logger.info("Connecting to Mongo locally on mongodb://localhost:27017.")
-                client = pm.MongoClient("mongodb://localhost:27017")
+                client = pm.MongoClient("mongodb://localhost:27017",
+                                        tlsCAFile=certifi.where())
     return client
 
 
-def ensure_connection(func):
+def ensure_connection(func: Callable) -> Callable:
     """
     Decorator to ensure database connection exists before executing function.
     Automatically calls connect_db() if client is None.
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         global client
 
         if client is None:
@@ -83,23 +85,26 @@ def ensure_connection(func):
     return wrapper
 
 
-def convert_mongo_id(doc: dict):
+def convert_mongo_id(doc: dict) -> None:
+    """
+    Convert MongoDB ObjectId to string in-place for JSON serialization.
+    """
     if MONGO_ID in doc:
         # Convert mongo ID to a string so it works as JSON
         doc[MONGO_ID] = str(doc[MONGO_ID])
 
 
 @ensure_connection
-def create(collection, doc, db=SE_DB):
+def create(collection: str, doc: dict, db: str = SE_DB) -> InsertOneResult:
     """
     Insert a single doc into collection.
     """
-    print(f"{db=}")
+    logger.debug(f"Creating document in collection '{collection}' of database '{db}'")
     return client[db][collection].insert_one(doc)
 
 
 @ensure_connection
-def read_one(collection, filt, db=SE_DB):
+def read_one(collection: str, filt: dict, db: str = SE_DB) -> Optional[dict]:
     """
     Find with a filter and return on the first doc found.
     Return None if not found.
@@ -107,20 +112,22 @@ def read_one(collection, filt, db=SE_DB):
     for doc in client[db][collection].find(filt):
         convert_mongo_id(doc)
         return doc
+    return None
 
 
 @ensure_connection
-def delete(collection: str, filt: dict, db=SE_DB):
+def delete(collection: str, filt: dict, db: str = SE_DB) -> int:
     """
-    Find with a filter and return on the first doc found.
+    Delete a single document matching the filter.
+    Returns the count of deleted documents (0 or 1).
     """
-    print(f"{filt=}")
+    logger.debug(f"Deleting document from collection '{collection}' with filter: {filt}")
     del_result = client[db][collection].delete_one(filt)
     return del_result.deleted_count
 
 
 @ensure_connection
-def delete_many(collection: str, filt: dict, db=SE_DB) -> int:
+def delete_many(collection: str, filt: dict, db: str = SE_DB) -> int:
     """
     Delete multiple documents matching the filter.
     Returns the count of deleted documents.
@@ -130,11 +137,18 @@ def delete_many(collection: str, filt: dict, db=SE_DB) -> int:
 
 
 @ensure_connection
-def update(collection, filters, update_dict, db=SE_DB):
+def update(collection: str, filters: dict, update_dict: dict, db: str = SE_DB) -> UpdateResult:
+    """
+    Update a single document matching the filters.
+    Uses $set operator to update specified fields.
+    """
     return client[db][collection].update_one(filters, {"$set": update_dict})
 
 
-def _apply_pagination(cursor, limit=None, offset=None):
+def _apply_pagination(cursor: Any, limit: Optional[int] = None, offset: Optional[int] = None) -> Any:
+    """
+    Apply pagination (skip/limit) to a MongoDB cursor.
+    """
     if offset is not None and offset > 0:
         cursor = cursor.skip(offset)
     if limit is not None and limit > 0:
@@ -143,7 +157,7 @@ def _apply_pagination(cursor, limit=None, offset=None):
 
 
 @ensure_connection
-def read(collection, db=SE_DB, no_id=True, limit=None, offset=None) -> list:
+def read(collection: str, db: str = SE_DB, no_id: bool = True, limit: Optional[int] = None, offset: Optional[int] = None) -> List[Dict[str, Any]]:
     """
     Returns a list from the db with optional pagination.
     """
@@ -161,8 +175,8 @@ def read(collection, db=SE_DB, no_id=True, limit=None, offset=None) -> list:
 
 
 @ensure_connection
-def read_filtered(collection, filt: dict, db=SE_DB, no_id=True,
-                  limit=None, offset=None) -> list:
+def read_filtered(collection: str, filt: dict, db: str = SE_DB, no_id: bool = True,
+                  limit: Optional[int] = None, offset: Optional[int] = None) -> List[Dict[str, Any]]:
     """
     Returns a filtered list from the db using the provided filt dict.
     """
@@ -179,7 +193,11 @@ def read_filtered(collection, filt: dict, db=SE_DB, no_id=True,
     return ret
 
 
-def read_dict(collection, key, db=SE_DB, no_id=True) -> dict:
+def read_dict(collection: str, key: str, db: str = SE_DB, no_id: bool = True) -> Dict[str, Dict[str, Any]]:
+    """
+    Read all records from a collection and return as a dictionary
+    keyed by the specified field.
+    """
     recs = read(collection, db=db, no_id=no_id)
     recs_as_dict = {}
     for rec in recs:
@@ -188,7 +206,11 @@ def read_dict(collection, key, db=SE_DB, no_id=True) -> dict:
 
 
 @ensure_connection
-def fetch_all_as_dict(key, collection, db=SE_DB):
+def fetch_all_as_dict(key: str, collection: str, db: str = SE_DB) -> Dict[str, Dict[str, Any]]:
+    """
+    Fetch all documents from a collection and return as a dictionary
+    keyed by the specified field. Always removes _id field.
+    """
     ret = {}
     for doc in client[db][collection].find():
         del doc[MONGO_ID]
