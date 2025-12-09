@@ -57,12 +57,11 @@ def connect_db() -> pm.MongoClient:
             os.getenv("MONGO_SOCKET_TIMEOUT_MS", DEFAULT_SOCKET_TIMEOUT_MS)
         )
         
-        # Common connection options for all connections
-        connection_options = {
+        # Common connection options (timeouts only)
+        base_connection_options = {
             "serverSelectionTimeoutMS": server_selection_timeout_ms,
             "connectTimeoutMS": connect_timeout_ms,
             "socketTimeoutMS": socket_timeout_ms,
-            "tlsCAFile": certifi.where()
         }
         
         if os.getenv("CLOUD_MONGO", LOCAL) == CLOUD:
@@ -73,7 +72,12 @@ def connect_db() -> pm.MongoClient:
                 )
             else:
                 logger.info("Connecting to Cloud Atlas MongoDB.")
-                client = pm.MongoClient(uri, **connection_options)
+                # Add TLS options for cloud connections
+                cloud_connection_options = {
+                    **base_connection_options,
+                    "tlsCAFile": certifi.where()
+                }
+                client = pm.MongoClient(uri, **cloud_connection_options)
                 logger.info("Successfully connected to Cloud Atlas MongoDB")
         else:
             mongo_uri = os.getenv("LOCAL_MONGO_DB_URI")
@@ -82,7 +86,13 @@ def connect_db() -> pm.MongoClient:
                 if "@" in mongo_uri:
                     redacted = mongo_uri.split("@")[-1]
                 logger.info(f"Connecting to Mongo locally using custom URI: {redacted}")
-                client = pm.MongoClient(mongo_uri, **connection_options)
+                # Local connections don't use TLS/SSL
+                client = pm.MongoClient(mongo_uri, **base_connection_options)
+                logger.info("Successfully connected to local MongoDB")
+            else:
+                # Default local connection without URI
+                logger.info("Connecting to Mongo locally using default connection")
+                client = pm.MongoClient("mongodb://localhost:27017/", **base_connection_options)
                 logger.info("Successfully connected to local MongoDB")
     return client
 
