@@ -32,7 +32,8 @@ def client():
 
 def test_country_timestamps_are_iso8601(client):
     """GET /countries/<code> should return created_at/updated_at parseable as ISO datetimes."""
-    now = datetime.utcnow()
+    from datetime import UTC
+    now = datetime.now(UTC)
     mocked_country = dict(countries_data.TEST_COUNTRY)
     mocked_country['created_at'] = now
     mocked_country['updated_at'] = now
@@ -52,8 +53,9 @@ def test_country_timestamps_are_iso8601(client):
 
 def test_update_changes_updated_at(client):
     """PUT /countries/<code> should return an object with a newer updated_at than before."""
-    old_dt = datetime(2020, 1, 1, 0, 0, 0)
-    new_dt = datetime.utcnow()
+    from datetime import UTC
+    old_dt = datetime(2020, 1, 1, 0, 0, 0, tzinfo=UTC)
+    new_dt = datetime.now(UTC)
 
     initial_country = dict(countries_data.TEST_COUNTRY)
     initial_country['updated_at'] = old_dt

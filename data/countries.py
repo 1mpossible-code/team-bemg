@@ -166,7 +166,8 @@ def add_country(country_data: dict) -> bool:
         raise ValueError("Area cannot be negative")
 
     # Timestamps
-    now = datetime.utcnow()
+    from datetime import UTC
+    now = datetime.now(UTC)
     country_data['created_at'] = now
     country_data['updated_at'] = now
 
@@ -199,8 +200,8 @@ def update_country(code: str, update_data: dict) -> bool:
         del update_data[COUNTRY_CODE]
 
     # Set updated_at timestamp
-    from datetime import datetime as _dt
-    update_data['updated_at'] = _dt.utcnow()
+    from datetime import datetime as _dt, UTC
+    update_data['updated_at'] = _dt.now(UTC)
 
     result = dbc.update(COUNTRIES_COLLECT, {COUNTRY_CODE: code}, update_data)
     if result.modified_count > 0:
