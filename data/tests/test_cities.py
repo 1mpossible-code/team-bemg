@@ -183,7 +183,9 @@ class TestCities:
             mock_acknowledged_result):
         """Test successfully adding a new city with state."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-                patch('data.db_connect.create') as mock_create:
+                patch('data.db_connect.create') as mock_create, \
+                patch('data.states.state_exists', return_value=True), \
+                patch('data.countries.country_exists', return_value=True):
             mock_get.return_value = None
             mock_create.return_value = mock_acknowledged_result
 
@@ -196,7 +198,8 @@ class TestCities:
             self, sample_city_no_state, mock_acknowledged_result):
         """Test successfully adding a new city without state."""
         with patch('data.cities.get_city_by_name_and_country') as mock_get, \
-                patch('data.db_connect.create') as mock_create:
+                patch('data.db_connect.create') as mock_create, \
+                patch('data.countries.country_exists', return_value=True):
             mock_get.return_value = None
             mock_create.return_value = mock_acknowledged_result
 
@@ -204,6 +207,18 @@ class TestCities:
             assert result is True
             mock_create.assert_called_once_with(
                 cities.CITIES_COLLECT, sample_city_no_state)
+
+    def test_add_city_invalid_state_code(self, sample_city_with_state):
+        """Test adding a city with non-existent state code raises ValueError."""
+        with patch('data.states.state_exists', return_value=False):
+            with pytest.raises(ValueError, match="State with code 'IL' does not exist"):
+                cities.add_city(sample_city_with_state)
+
+    def test_add_city_invalid_country_code(self, sample_city_no_state):
+        """Test adding a city with non-existent country code raises ValueError."""
+        with patch('data.countries.country_exists', return_value=False):
+            with pytest.raises(ValueError, match="Country with code 'MC' does not exist"):
+                cities.add_city(sample_city_no_state)
 
     def test_add_city_missing_required_field(self):
         """Test adding a city with missing required field."""
@@ -225,14 +240,17 @@ class TestCities:
 
     def test_add_city_already_exists_in_state(self, sample_city_with_state):
         """Test adding a city that already exists in the same state."""
-        with patch('data.cities.get_city_by_name_and_state') as mock_get:
+        with patch('data.cities.get_city_by_name_and_state') as mock_get, \
+                patch('data.states.state_exists', return_value=True), \
+                patch('data.countries.country_exists', return_value=True):
             mock_get.return_value = sample_city_with_state
             with pytest.raises(ValueError, match="already exists in state"):
                 cities.add_city(sample_city_with_state)
 
     def test_add_city_already_exists_in_country(self, sample_city_no_state):
         """Test adding a city that already exists in the same country (no state)."""
-        with patch('data.cities.get_city_by_name_and_country') as mock_get:
+        with patch('data.cities.get_city_by_name_and_country') as mock_get, \
+                patch('data.countries.country_exists', return_value=True):
             mock_get.return_value = sample_city_no_state
             with pytest.raises(ValueError, match="already exists in country"):
                 cities.add_city(sample_city_no_state)
@@ -483,7 +501,9 @@ class TestCities:
     def test_add_city_sanitizes_whitespace(self, mock_acknowledged_result):
         """Test that add_city strips whitespace and normalizes codes."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-                patch('data.db_connect.create', return_value=mock_acknowledged_result):
+                patch('data.db_connect.create', return_value=mock_acknowledged_result), \
+                patch('data.states.state_exists', return_value=True), \
+                patch('data.countries.country_exists', return_value=True):
             mock_get.return_value = None
 
             city_data = {
@@ -501,7 +521,9 @@ class TestCities:
     def test_add_city_collapses_spaces(self, mock_acknowledged_result):
         """Test that add_city collapses multiple spaces in name."""
         with patch('data.cities.get_city_by_name_and_state') as mock_get, \
-                patch('data.db_connect.create', return_value=mock_acknowledged_result):
+                patch('data.db_connect.create', return_value=mock_acknowledged_result), \
+                patch('data.states.state_exists', return_value=True), \
+                patch('data.countries.country_exists', return_value=True):
             mock_get.return_value = None
 
             city_data = {

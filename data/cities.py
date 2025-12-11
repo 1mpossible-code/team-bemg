@@ -129,6 +129,19 @@ def add_city(city_data: dict) -> bool:
     if COUNTRY_CODE in city_data:
         city_data[COUNTRY_CODE] = sanitize_code(city_data[COUNTRY_CODE])
 
+    # Validate that state_code exists if provided
+    if STATE_CODE in city_data and city_data[STATE_CODE]:
+        import data.states as states_module
+        if not states_module.state_exists(city_data[STATE_CODE]):
+            raise ValueError(
+                f"State with code '{city_data[STATE_CODE]}' does not exist")
+
+    # Validate that country_code exists
+    import data.countries as countries_module
+    if not countries_module.country_exists(city_data[COUNTRY_CODE]):
+        raise ValueError(
+            f"Country with code '{city_data[COUNTRY_CODE]}' does not exist")
+
     # Check for duplicate: same name in same state (if state provided)
     if STATE_CODE in city_data:
         existing = get_city_by_name_and_state(
