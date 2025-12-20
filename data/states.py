@@ -114,8 +114,7 @@ def add_state(state_data: dict) -> bool:
 
     if get_state_by_code(state_data[STATE_CODE]):
         raise ValueError(
-            f"State with code {
-                state_data[STATE_CODE]} already exists")
+            f"State with code {state_data[STATE_CODE]} already exists")
 
     if state_data.get(POPULATION, 0) < 0:
         raise ValueError("Population cannot be negative")

@@ -10,23 +10,23 @@ from datetime import datetime
 import data.states as states
 from data.cache import country_by_code_cache
 
-COUNTRIES_COLLECT = 'countries'
+COUNTRIES_COLLECT = "countries"
 
-COUNTRY_NAME = 'country_name'
-COUNTRY_CODE = 'country_code'
-CONTINENT = 'continent'
-POPULATION = 'population'
-AREA_KM2 = 'area_km2'
-CAPITAL = 'capital'
+COUNTRY_NAME = "country_name"
+COUNTRY_CODE = "country_code"
+CONTINENT = "continent"
+POPULATION = "population"
+AREA_KM2 = "area_km2"
+CAPITAL = "capital"
 
 # Continent constants
-AFRICA = 'Africa'
-ANTARCTICA = 'Antarctica'
-ASIA = 'Asia'
-EUROPE = 'Europe'
-NORTH_AMERICA = 'North America'
-OCEANIA = 'Oceania'
-SOUTH_AMERICA = 'South America'
+AFRICA = "Africa"
+ANTARCTICA = "Antarctica"
+ASIA = "Asia"
+EUROPE = "Europe"
+NORTH_AMERICA = "North America"
+OCEANIA = "Oceania"
+SOUTH_AMERICA = "South America"
 
 VALID_CONTINENTS = [
     AFRICA,
@@ -35,19 +35,19 @@ VALID_CONTINENTS = [
     EUROPE,
     NORTH_AMERICA,
     OCEANIA,
-    SOUTH_AMERICA
+    SOUTH_AMERICA,
 ]
 
 REQUIRED_FIELDS = [COUNTRY_NAME, COUNTRY_CODE, CONTINENT, CAPITAL]
 OPTIONAL_FIELDS = [POPULATION, AREA_KM2]
 
 TEST_COUNTRY = {
-    COUNTRY_NAME: 'United States',
-    COUNTRY_CODE: 'US',
-    CONTINENT: 'North America',
-    CAPITAL: 'Washington D.C.',
+    COUNTRY_NAME: "United States",
+    COUNTRY_CODE: "US",
+    CONTINENT: "North America",
+    CAPITAL: "Washington D.C.",
     POPULATION: 331000000,
-    AREA_KM2: 9833517
+    AREA_KM2: 9833517,
 }
 
 
@@ -95,9 +95,7 @@ def get_countries_by_continent(continent: str) -> list:
     return dbc.read_filtered(COUNTRIES_COLLECT, {CONTINENT: continent})
 
 
-def get_countries_by_population_range(
-        min_pop: int = None,
-        max_pop: int = None) -> list:
+def get_countries_by_population_range(min_pop: int = None, max_pop: int = None) -> list:
     """
     Returns a list of all countries filtered by population range
     """
@@ -139,8 +137,7 @@ def add_country(country_data: dict) -> bool:
 
     # Sanitize string fields
     if COUNTRY_NAME in country_data:
-        country_data[COUNTRY_NAME] = sanitize_string(
-            country_data[COUNTRY_NAME])
+        country_data[COUNTRY_NAME] = sanitize_string(country_data[COUNTRY_NAME])
     if COUNTRY_CODE in country_data:
         country_data[COUNTRY_CODE] = sanitize_code(country_data[COUNTRY_CODE])
     if CAPITAL in country_data:
@@ -151,13 +148,13 @@ def add_country(country_data: dict) -> bool:
     # Validate continent
     if country_data[CONTINENT] not in VALID_CONTINENTS:
         raise ValueError(
-            f"Invalid continent: {
-                country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}")
+            f"Invalid continent: {country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}"
+        )
 
     if get_country_by_code(country_data[COUNTRY_CODE]):
         raise ValueError(
-            f"Country with code {
-                country_data[COUNTRY_CODE]} already exists")
+            f"Country with code {country_data[COUNTRY_CODE]} already exists"
+        )
 
     if country_data.get(POPULATION, 0) < 0:
         raise ValueError("Population cannot be negative")
@@ -167,9 +164,10 @@ def add_country(country_data: dict) -> bool:
 
     # Timestamps
     from datetime import UTC
+
     now = datetime.now(UTC)
-    country_data['created_at'] = now
-    country_data['updated_at'] = now
+    country_data["created_at"] = now
+    country_data["updated_at"] = now
 
     result = dbc.create(COUNTRIES_COLLECT, country_data)
     if result.acknowledged:
@@ -201,7 +199,8 @@ def update_country(code: str, update_data: dict) -> bool:
 
     # Set updated_at timestamp
     from datetime import datetime as _dt, UTC
-    update_data['updated_at'] = _dt.now(UTC)
+
+    update_data["updated_at"] = _dt.now(UTC)
 
     result = dbc.update(COUNTRIES_COLLECT, {COUNTRY_CODE: code}, update_data)
     if result.modified_count > 0:
@@ -216,6 +215,7 @@ def get_dependent_states_count(country_code: str) -> int:
     Check how many states belong to this country.
     """
     import data.states as states
+
     states_list = states.get_states_by_country(country_code)
     return len(states_list)
 
@@ -227,7 +227,10 @@ def can_delete_country(country_code: str) -> tuple[bool, str]:
     """
     dependent_count = get_dependent_states_count(country_code)
     if dependent_count > 0:
-        return False, f"Cannot delete: {dependent_count} state(s) depend on this country"
+        return (
+            False,
+            f"Cannot delete: {dependent_count} state(s) depend on this country",
+        )
     return True, ""
 
 

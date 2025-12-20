@@ -148,18 +148,14 @@ def add_city(city_data: dict) -> bool:
             city_data[CITY_NAME], city_data[STATE_CODE])
         if existing:
             raise ValueError(
-                f"City '{
-                    city_data[CITY_NAME]}' already exists in state '{
-                    city_data[STATE_CODE]}'")
+                f"City '{city_data[CITY_NAME]}' already exists in state '{city_data[STATE_CODE]}'")
     else:
         # If no state, check by name and country
         existing = get_city_by_name_and_country(
             city_data[CITY_NAME], city_data[COUNTRY_CODE])
         if existing:
             raise ValueError(
-                f"City '{
-                    city_data[CITY_NAME]}' already exists in country '{
-                    city_data[COUNTRY_CODE]}'")
+                f"City '{city_data[CITY_NAME]}' already exists in country '{city_data[COUNTRY_CODE]}'")
 
     if city_data.get(POPULATION, 0) < 0:
         raise ValueError("Population cannot be negative")
