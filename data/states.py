@@ -122,7 +122,9 @@ def add_state(state_data: dict) -> bool:
     if state_data.get(AREA_KM2, 0) < 0:
         raise ValueError("Area cannot be negative")
 
-    # Timestamps
+    # Timestamps - strip any user-supplied values and set server-side
+    state_data.pop('created_at', None)
+    state_data.pop('updated_at', None)
     from datetime import UTC
     now = datetime.now(UTC)
     state_data['created_at'] = now
@@ -154,12 +156,10 @@ def update_state(code: str, update_data: dict) -> bool:
 
     if STATE_CODE in update_data:
         del update_data[STATE_CODE]
-    # Set updated_at timestamp
+    # Set updated_at timestamp - strip user value first
+    update_data.pop('created_at', None)
     from datetime import datetime as _dt, UTC
-    if UPDATED_AT in update_data:
-        update_data[UPDATED_AT] = _dt.now(UTC)
-    else:
-        update_data[UPDATED_AT] = _dt.now(UTC)
+    update_data[UPDATED_AT] = _dt.now(UTC)
 
     result = dbc.update(STATES_COLLECT, {STATE_CODE: code}, update_data)
     if result.modified_count > 0:

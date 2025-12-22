@@ -193,12 +193,10 @@ def update_city(name: str, state_code: str, update_data: dict) -> bool:
         del update_data[CITY_NAME]
     if STATE_CODE in update_data:
         del update_data[STATE_CODE]
-    # Set updated_at timestamp
-    from datetime import datetime as _dt
-    if UPDATED_AT in update_data:
-        update_data[UPDATED_AT] = _dt.utcnow()
-    else:
-        update_data[UPDATED_AT] = _dt.utcnow()
+    # Set updated_at timestamp - strip user value first
+    update_data.pop('created_at', None)
+    from datetime import datetime as _dt, UTC
+    update_data[UPDATED_AT] = _dt.now(UTC)
 
     result = dbc.update(
         CITIES_COLLECT, {

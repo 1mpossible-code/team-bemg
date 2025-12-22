@@ -162,7 +162,9 @@ def add_country(country_data: dict) -> bool:
     if country_data.get(AREA_KM2, 0) < 0:
         raise ValueError("Area cannot be negative")
 
-    # Timestamps
+    # Timestamps - strip any user-supplied values and set server-side
+    country_data.pop('created_at', None)
+    country_data.pop('updated_at', None)
     from datetime import UTC
 
     now = datetime.now(UTC)
@@ -197,7 +199,8 @@ def update_country(code: str, update_data: dict) -> bool:
     if COUNTRY_CODE in update_data:
         del update_data[COUNTRY_CODE]
 
-    # Set updated_at timestamp
+    # Set updated_at timestamp - strip user value first
+    update_data.pop('created_at', None)
     from datetime import datetime as _dt, UTC
 
     update_data["updated_at"] = _dt.now(UTC)
