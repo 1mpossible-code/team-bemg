@@ -50,8 +50,9 @@ list_parser.add_argument(
     help='Number of cities to skip from the start (>= 0)'
 )
 
-city_model = cities_ns.model(
-    'City',
+# Request model for creating cities (no timestamps - server-side only)
+city_create_model = cities_ns.model(
+    'CityCreate',
     {
         'city_name': fields.String(
             required=True,
@@ -78,12 +79,39 @@ city_model = cities_ns.model(
     }
 )
 
-# Read-only timestamp fields (added to validators as dates)
-city_model['created_at'] = fields.DateTime(
-    description='Creation timestamp', example='2025-11-12T12:00:00Z'
-)
-city_model['updated_at'] = fields.DateTime(
-    description='Last update timestamp', example='2025-11-12T12:00:00Z'
+# Response model for cities (includes read-only timestamps)
+city_model = cities_ns.model(
+    'City',
+    {
+        'city_name': fields.String(
+            required=True,
+            description='City name',
+            example='New York'),
+        'state_code': fields.String(
+            required=True,
+            description='Parent state code (e.g., NY)',
+            example='NY'),
+        'country_code': fields.String(
+            required=True,
+            description='Parent country code (ISO 3166-1 alpha-2)',
+            example='US'),
+        'population': fields.Integer(
+            description='Population count',
+            example=8468000),
+        'area_km2': fields.Float(
+            description='Area in square kilometers',
+            example=783.8),
+        'coordinates': fields.Nested(
+            coordinate_model,
+            required=True,
+            description='Geographic coordinates'),
+        'created_at': fields.DateTime(
+            description='Creation timestamp (read-only, set by server)',
+            example='2025-11-12T12:00:00Z'),
+        'updated_at': fields.DateTime(
+            description='Last update timestamp (read-only, set by server)',
+            example='2025-11-12T12:00:00Z')
+    }
 )
 
 # Model for updating (key fields are not updatable)
@@ -145,13 +173,18 @@ class CitiesList(Resource):
                             message=f"Database error: {str(e)}")
 
     @cities_ns.doc('create_city')
-    @cities_ns.expect(city_model)
+    @cities_ns.expect(city_create_model)
     @cities_ns.marshal_with(city_model, code=HTTPStatus.CREATED)
     @cities_ns.response(HTTPStatus.BAD_REQUEST, 'Validation error',
                         error_model)
     @cities_ns.response(HTTPStatus.CONFLICT, 'City already exists',
                         error_model)
     def post(self):
+        """
+        Create a new city
+        Creates a new city with the provided data.
+        Timestamps (created_at, updated_at) are automatically set by the server.
+        """
         city_data = request.json
 
         state_code = city_data.get('state_code')
@@ -272,6 +305,7 @@ class City(Resource):
         """
         Update a city
         Updates the city with the provided data.
+        The updated_at timestamp is automatically set by the server.
         """
         update_data = request.json
 
