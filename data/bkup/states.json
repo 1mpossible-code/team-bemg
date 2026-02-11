@@ -1,0 +1,7 @@
+[
+  {"state_name": "California", "state_code": "CA", "country_code": "US", "capital": "Sacramento", "population": 39500000, "area_km2": 423970.0},
+  {"state_name": "New York", "state_code": "NY", "country_code": "US", "capital": "Albany", "population": 19400000, "area_km2": 141300.0},
+  {"state_name": "Ontario", "state_code": "ON", "country_code": "CA", "capital": "Toronto", "population": 14700000, "area_km2": 1076395.0},
+  {"state_name": "Bavaria", "state_code": "BY", "country_code": "DE", "capital": "Munich", "population": 13100000, "area_km2": 70550.0},
+  {"state_name": "Jalisco", "state_code": "JA", "country_code": "MX", "capital": "Guadalajara", "population": 8400000, "area_km2": 78599.0}
+]

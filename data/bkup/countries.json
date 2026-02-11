@@ -1,0 +1,7 @@
+[
+  {"country_name": "United States", "country_code": "US", "continent": "North America", "capital": "Washington D.C.", "population": 331000000, "area_km2": 9833517.0},
+  {"country_name": "Canada", "country_code": "CA", "continent": "North America", "capital": "Ottawa", "population": 38000000, "area_km2": 9984670.0},
+  {"country_name": "Mexico", "country_code": "MX", "continent": "North America", "capital": "Mexico City", "population": 126000000, "area_km2": 1964375.0},
+  {"country_name": "United Kingdom", "country_code": "GB", "continent": "Europe", "capital": "London", "population": 67000000, "area_km2": 243610.0},
+  {"country_name": "Germany", "country_code": "DE", "continent": "Europe", "capital": "Berlin", "population": 83000000, "area_km2": 357386.0}
+]

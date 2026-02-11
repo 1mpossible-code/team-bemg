@@ -1,0 +1,7 @@
+[
+  {"city_name": "Los Angeles", "state_code": "CA", "country_code": "US", "population": 3890000, "area_km2": 1302.0, "coordinates": {"latitude": 34.0522, "longitude": -118.2437}},
+  {"city_name": "San Francisco", "state_code": "CA", "country_code": "US", "population": 815000, "area_km2": 121.0, "coordinates": {"latitude": 37.7749, "longitude": -122.4194}},
+  {"city_name": "New York City", "state_code": "NY", "country_code": "US", "population": 8468000, "area_km2": 783.8, "coordinates": {"latitude": 40.7128, "longitude": -74.006}},
+  {"city_name": "Toronto", "state_code": "ON", "country_code": "CA", "population": 2730000, "area_km2": 630.2, "coordinates": {"latitude": 43.6532, "longitude": -79.3832}},
+  {"city_name": "Guadalajara", "state_code": "JA", "country_code": "MX", "population": 1495000, "area_km2": 187.9, "coordinates": {"latitude": 20.6597, "longitude": -103.3496}}
+]
