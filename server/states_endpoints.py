@@ -24,6 +24,38 @@ states_ns = Namespace('states', description='State operations')
 # Define models for Swagger documentation and validation
 state_props = states_validator["$jsonSchema"]["properties"]
 
+# Request model for creating states (no timestamps - server-side only)
+state_create_model = states_ns.model(
+    'StateCreate',
+    {
+        'state_name': fields.String(
+            required=True,
+            description='State name',
+            example='California'),
+        'state_code': fields.String(
+            required=True,
+            description='State code (e.g., CA)',
+            example='CA',
+            pattern=state_props["state_code"]["pattern"]),
+        'country_code': fields.String(
+            required=True,
+            description='Parent country code (ISO 3166-1 alpha-2)',
+            example='US',
+            pattern=state_props["country_code"]["pattern"]),
+        'capital': fields.String(
+            required=True,
+            description='Capital city',
+            example='Sacramento'),
+        'population': fields.Integer(
+            required=True,
+            description='Population count',
+            example=39538223),
+        'area_km2': fields.Float(
+            required=True,
+            description='Area in square kilometers',
+            example=423970.0)})
+
+# Response model for states (includes read-only timestamps)
 state_model = states_ns.model(
     'State',
     {
@@ -52,14 +84,13 @@ state_model = states_ns.model(
         'area_km2': fields.Float(
             required=True,
             description='Area in square kilometers',
-            example=423970.0)})
-# Read-only timestamp fields (added to validators as dates)
-state_model['created_at'] = fields.DateTime(
-    description='Creation timestamp', example='2025-11-12T12:00:00Z'
-)
-state_model['updated_at'] = fields.DateTime(
-    description='Last update timestamp', example='2025-11-12T12:00:00Z'
-)
+            example=423970.0),
+        'created_at': fields.DateTime(
+            description='Creation timestamp (read-only, set by server)',
+            example='2025-11-12T12:00:00Z'),
+        'updated_at': fields.DateTime(
+            description='Last update timestamp (read-only, set by server)',
+            example='2025-11-12T12:00:00Z')})
 
 state_update_model = states_ns.model('StateUpdate', {
     'state_name': fields.String(description='State name'),
@@ -155,7 +186,7 @@ class StatesList(Resource):
                             f"Database error: {str(e)}")
 
     @states_ns.doc('create_state')
-    @states_ns.expect(state_model)
+    @states_ns.expect(state_create_model)
     @states_ns.marshal_with(state_model, code=HTTPStatus.CREATED)
     @states_ns.response(HTTPStatus.BAD_REQUEST, 'Validation error',
                         error_model)
@@ -165,6 +196,7 @@ class StatesList(Resource):
         """
         Create a new state
         Creates a new state with the provided data.
+        Timestamps (created_at, updated_at) are automatically set by the server.
         """
         state_data = request.json
 
@@ -228,6 +260,7 @@ class State(Resource):
     def put(self, state_code: str):
         """
         Update a state by its code.
+        The updated_at timestamp is automatically set by the server.
         """
         update_data = request.json or {}
 
