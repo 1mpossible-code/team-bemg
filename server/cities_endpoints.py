@@ -183,7 +183,7 @@ class CitiesList(Resource):
         """
         Create a new city
         Creates a new city with the provided data.
-        Timestamps (created_at, updated_at) are automatically set by the server.
+        Timestamps are automatically set by the server.
         """
         city_data = request.json
 
