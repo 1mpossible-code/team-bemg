@@ -17,8 +17,10 @@ from server.helpers import apply_pagination, validate_pagination
 countries_ns = Namespace("countries", description="Country operations")
 
 # Define models for Swagger documentation and validation
-country_model = countries_ns.model(
-    "Country",
+
+# Request model for creating countries (no timestamps - server-side only)
+country_create_model = countries_ns.model(
+    "CountryCreate",
     {
         "country_name": fields.String(
             required=True, description="Country name", example="United States"
@@ -47,12 +49,45 @@ country_model = countries_ns.model(
         ),
     },
 )
-# Read-only timestamp fields (added to validators as dates)
-country_model['created_at'] = fields.DateTime(
-    description='Creation timestamp', example='2025-11-12T12:00:00Z'
-)
-country_model['updated_at'] = fields.DateTime(
-    description='Last update timestamp', example='2025-11-12T12:00:00Z'
+
+# Response model for countries (includes read-only timestamps)
+country_model = countries_ns.model(
+    "Country",
+    {
+        "country_name": fields.String(
+            required=True, description="Country name", example="United States"
+        ),
+        "country_code": fields.String(
+            required=True,
+            description="ISO 3166-1 alpha-2 country code",
+            example="US"
+        ),
+        "continent": fields.String(
+            required=True,
+            description="Continent name",
+            enum=VALID_CONTINENTS,
+            example="North America",
+        ),
+        "capital": fields.String(
+            required=True,
+            description="Capital city",
+            example="Washington D.C."
+        ),
+        "population": fields.Integer(
+            description="Population count", example=331000000
+        ),
+        "area_km2": fields.Float(
+            description="Area in square kilometers", example=9833517.0
+        ),
+        "created_at": fields.DateTime(
+            description='Creation timestamp (read-only, set by server)', 
+            example='2025-11-12T12:00:00Z'
+        ),
+        "updated_at": fields.DateTime(
+            description='Last update timestamp (read-only, set by server)', 
+            example='2025-11-12T12:00:00Z'
+        ),
+    },
 )
 
 country_update_model = countries_ns.model(
@@ -121,7 +156,7 @@ class CountriesList(Resource):
             )
 
     @countries_ns.doc("create_country")
-    @countries_ns.expect(country_model)
+    @countries_ns.expect(country_create_model)
     @countries_ns.marshal_with(country_model, code=HTTPStatus.CREATED)
     @countries_ns.response(
         HTTPStatus.BAD_REQUEST, "Validation error", error_model
@@ -133,6 +168,7 @@ class CountriesList(Resource):
         """
         Create a new country
         Creates a new country with the provided data.
+        Timestamps (created_at, updated_at) are automatically set by the server.
         """
         country_data = request.json
 
@@ -236,6 +272,7 @@ class Country(Resource):
         """
         Update a country
         Updates the country with the provided data.
+        The updated_at timestamp is automatically set by the server.
         """
         update_data = request.json
 
