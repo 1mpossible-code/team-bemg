@@ -80,11 +80,11 @@ country_model = countries_ns.model(
             description="Area in square kilometers", example=9833517.0
         ),
         "created_at": fields.DateTime(
-            description='Creation timestamp (read-only, set by server)', 
+            description='Creation timestamp (read-only, set by server)',
             example='2025-11-12T12:00:00Z'
         ),
         "updated_at": fields.DateTime(
-            description='Last update timestamp (read-only, set by server)', 
+            description='Last update timestamp (read-only, set by server)',
             example='2025-11-12T12:00:00Z'
         ),
     },
@@ -168,7 +168,7 @@ class CountriesList(Resource):
         """
         Create a new country
         Creates a new country with the provided data.
-        Timestamps (created_at, updated_at) are automatically set by the server.
+        Timestamps are automatically set by the server.
         """
         country_data = request.json
 

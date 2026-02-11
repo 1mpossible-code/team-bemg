@@ -196,7 +196,7 @@ class StatesList(Resource):
         """
         Create a new state
         Creates a new state with the provided data.
-        Timestamps (created_at, updated_at) are automatically set by the server.
+        Timestamps are automatically set by the server.
         """
         state_data = request.json
 
