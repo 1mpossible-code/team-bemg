@@ -11,8 +11,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any, Iterable
+
+# Ensure repository root is on sys.path so "data" imports work when run directly
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from data import db_connect as dbc
 
@@ -20,9 +26,6 @@ from data import db_connect as dbc
 # Map JSON filenames (without extension) to Mongo collection names.
 # Backups are expected at data/bkup/<stem>.json for each entry here.
 FILE_TO_COLLECTION = {
-    # Demo/sample data
-    "games": "games",
-    "users": "users",
     # Geo data used by the main API
     "countries": "countries",
     "states": "states",
@@ -52,7 +55,9 @@ def seed_collection(json_stem: str, dry_run: bool = False) -> int:
     """
 
     if json_stem not in FILE_TO_COLLECTION:
-        raise ValueError(f"Unknown backup stem '{json_stem}'. Update FILE_TO_COLLECTION to map it.")
+        raise ValueError(
+            f"Unknown backup stem '{json_stem}'. Update FILE_TO_COLLECTION to map it."
+        )
 
     base_dir = Path(__file__).resolve().parent.parent / "data" / "bkup"
     json_path = base_dir / f"{json_stem}.json"
@@ -69,7 +74,8 @@ def seed_collection(json_stem: str, dry_run: bool = False) -> int:
         return len(docs)
 
     collection = FILE_TO_COLLECTION[json_stem]
-    client, db = dbc.connect_db()
+    client = dbc.connect_db()
+    db = client[dbc.SE_DB]
     coll = db[collection]
 
     # Use insert_many for efficiency; ignore the returned IDs.
@@ -97,7 +103,9 @@ def seed_all(dry_run: bool = False) -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed MongoDB from data/bkup JSON files.")
+    parser = argparse.ArgumentParser(
+        description="Seed MongoDB from data/bkup JSON files."
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -107,7 +115,7 @@ def main() -> None:
         "--only",
         metavar="NAME",
         help=(
-            "Only seed the given backup stem (e.g. 'games', 'users'). "
+            "Only seed the given backup stem (e.g. 'countries', 'states', 'cities'). "
             "Defaults to seeding all known stems."
         ),
     )

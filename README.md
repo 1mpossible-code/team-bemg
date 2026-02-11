@@ -80,8 +80,8 @@ export MONGO_URI='mongodb://<user>:<pass>@localhost:27017/?authSource=admin'
 You can quickly load demo data from JSON backups using the helper script in
 `scripts/seed_db.py`.
 
-Backups are expected under `data/bkup/` with names like `games.json`,
-`users.json`, `countries.json`, `states.json`, `cities.json`. Each file should
+Backups are expected under `data/bkup/` with names like `countries.json`,
+`states.json`, `cities.json`. Each file should
 contain either a single JSON object or a list of objects.
 
 Example usage (from the repo root, with your virtualenv activated):
@@ -96,7 +96,7 @@ python scripts/seed_db.py --only countries   # seed just countries
 For a more complete walkthrough (including running MongoDB in Docker and
 importing a larger slice of the
 [Countries States Cities Database](https://github.com/dr5hn/countries-states-cities-database/tree/master)),
-see `docs/LocalMongoTesting.md`.
+see `docs/LocalMongoTesting.md`. For a quick seeding guide, see `docs/Seeding.md`.
 
 ## Common issues
 
