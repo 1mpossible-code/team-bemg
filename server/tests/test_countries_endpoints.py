@@ -270,3 +270,100 @@ class TestCountriesEndpoints:
         )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST
+
+    # HATEOAS Tests
+    def test_get_country_includes_hateoas_links(self, client):
+        """Test that GET /countries/<code> includes HATEOAS navigational links."""
+        with patch('data.countries.get_country_by_code') as mock_get:
+            mock_get.return_value = countries.TEST_COUNTRY
+            
+            response = client.get('/countries/US')
+            
+            assert response.status_code == HTTPStatus.OK
+            data = json.loads(response.data)
+            
+            # Verify _links field exists
+            assert '_links' in data
+            assert isinstance(data['_links'], list)
+            assert len(data['_links']) > 0
+            
+            # Extract link relations
+            link_rels = {link['rel'] for link in data['_links']}
+            
+            # Verify required HATEOAS links are present
+            assert 'self' in link_rels
+            assert 'states' in link_rels
+            assert 'continent' in link_rels
+            assert 'update' in link_rels
+            assert 'delete' in link_rels
+            assert 'all_countries' in link_rels
+
+    def test_hateoas_self_link_format(self, client):
+        """Test that the self link has correct format."""
+        with patch('data.countries.get_country_by_code') as mock_get:
+            mock_get.return_value = countries.TEST_COUNTRY
+            
+            response = client.get('/countries/US')
+            data = json.loads(response.data)
+            
+            # Find the self link
+            self_link = next(link for link in data['_links'] if link['rel'] == 'self')
+            
+            # Verify link structure
+            assert 'href' in self_link
+            assert 'method' in self_link
+            assert self_link['method'] == 'GET'
+            assert '/countries/US' in self_link['href']
+
+    def test_hateoas_states_link(self, client):
+        """Test that states link points to correct resource."""
+        with patch('data.countries.get_country_by_code') as mock_get:
+            mock_get.return_value = countries.TEST_COUNTRY
+            
+            response = client.get('/countries/US')
+            data = json.loads(response.data)
+            
+            # Find the states link
+            states_link = next(link for link in data['_links'] if link['rel'] == 'states')
+            
+            assert 'href' in states_link
+            assert '/countries/US/states' in states_link['href']
+            assert states_link['method'] == 'GET'
+
+    def test_hateoas_update_and_delete_links(self, client):
+        """Test that CRUD operation links are included."""
+        with patch('data.countries.get_country_by_code') as mock_get:
+            mock_get.return_value = countries.TEST_COUNTRY
+            
+            response = client.get('/countries/US')
+            data = json.loads(response.data)
+            
+            # Find update and delete links
+            update_link = next(link for link in data['_links'] if link['rel'] == 'update')
+            delete_link = next(link for link in data['_links'] if link['rel'] == 'delete')
+            
+            # Verify update link
+            assert update_link['method'] == 'PUT'
+            assert '/countries/US' in update_link['href']
+            
+            # Verify delete link
+            assert delete_link['method'] == 'DELETE'
+            assert '/countries/US' in delete_link['href']
+
+    def test_hateoas_continent_link(self, client):
+        """Test that continent link uses the country's continent value."""
+        test_country = {
+            **countries.TEST_COUNTRY,
+            'continent': 'Europe'
+        }
+        with patch('data.countries.get_country_by_code') as mock_get:
+            mock_get.return_value = test_country
+            
+            response = client.get('/countries/UK')
+            data = json.loads(response.data)
+            
+            # Find the continent link
+            continent_link = next(link for link in data['_links'] if link['rel'] == 'continent')
+            
+            assert '/countries/continent/Europe' in continent_link['href']
+            assert continent_link['method'] == 'GET'

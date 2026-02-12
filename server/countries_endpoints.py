@@ -3,7 +3,7 @@ Geographic API endpoints for countries.
 Provides full CRUD operations with Swagger documentation.
 """
 
-from flask import request
+from flask import request, url_for
 from flask_restx import Resource, fields, Namespace, reqparse
 from http import HTTPStatus
 
@@ -104,6 +104,144 @@ country_update_model = countries_ns.model(
         ),
     },
 )
+
+# HATEOAS link model
+link_model = countries_ns.model(
+    "Link",
+    {
+        "rel": fields.String(
+            required=True,
+            description="Relationship type",
+            example="self"
+        ),
+        "href": fields.String(
+            required=True,
+            description="URL to the related resource",
+            example="/api/countries/US"
+        ),
+        "method": fields.String(
+            description="HTTP method to use",
+            example="GET"
+        ),
+    },
+)
+
+# Country model with HATEOAS links
+country_hateoas_model = countries_ns.model(
+    "CountryWithLinks",
+    {
+        "country_name": fields.String(
+            required=True, description="Country name", example="United States"
+        ),
+        "country_code": fields.String(
+            required=True,
+            description="ISO 3166-1 alpha-2 country code",
+            example="US"
+        ),
+        "continent": fields.String(
+            required=True,
+            description="Continent name",
+            enum=VALID_CONTINENTS,
+            example="North America",
+        ),
+        "capital": fields.String(
+            required=True,
+            description="Capital city",
+            example="Washington D.C."
+        ),
+        "population": fields.Integer(
+            description="Population count", example=331000000
+        ),
+        "area_km2": fields.Float(
+            description="Area in square kilometers", example=9833517.0
+        ),
+        "created_at": fields.DateTime(
+            description='Creation timestamp (read-only, set by server)',
+            example='2025-11-12T12:00:00Z'
+        ),
+        "updated_at": fields.DateTime(
+            description='Last update timestamp (read-only, set by server)',
+            example='2025-11-12T12:00:00Z'
+        ),
+        "_links": fields.List(
+            fields.Nested(link_model),
+            description="HATEOAS navigational links to related resources"
+        ),
+    },
+)
+
+
+def add_country_links(country: dict) -> dict:
+    """Add HATEOAS links to a country resource.
+
+    Adds navigational links including:
+    - self: Link to this country
+    - states: Link to states in this country
+    - continent: Link to all countries in same continent
+    - update: Link to update this country
+    - delete: Link to delete this country
+    """
+    country_code = country.get('country_code', '')
+    continent = country.get('continent', '')
+
+    links = [
+        {
+            "rel": "self",
+            "href": url_for(
+                'countries_country',
+                country_code=country_code,
+                _external=False
+            ),
+            "method": "GET"
+        },
+        {
+            "rel": "states",
+            "href": url_for(
+                'countries_states_in_country',
+                country_code=country_code,
+                _external=False
+            ),
+            "method": "GET"
+        },
+        {
+            "rel": "continent",
+            "href": url_for(
+                'countries_countries_by_continent',
+                continent_name=continent,
+                _external=False
+            ),
+            "method": "GET"
+        },
+        {
+            "rel": "update",
+            "href": url_for(
+                'countries_country',
+                country_code=country_code,
+                _external=False
+            ),
+            "method": "PUT"
+        },
+        {
+            "rel": "delete",
+            "href": url_for(
+                'countries_country',
+                country_code=country_code,
+                _external=False
+            ),
+            "method": "DELETE"
+        },
+        {
+            "rel": "all_countries",
+            "href": url_for('countries_countries_list', _external=False),
+            "method": "GET"
+        },
+    ]
+
+    # Create a copy to avoid mutating the original
+    enhanced_country = country.copy()
+    enhanced_country['_links'] = links
+    return enhanced_country
+
 
 error_model = countries_ns.model(
     "Error",
@@ -235,14 +373,15 @@ class Country(Resource):
     """Single country endpoint"""
 
     @countries_ns.doc("get_country")
-    @countries_ns.marshal_with(country_model)
+    @countries_ns.marshal_with(country_hateoas_model)
     @countries_ns.response(
         HTTPStatus.NOT_FOUND, "Country not found", error_model
     )
     def get(self, country_code):
         """
-        Retrieve a specific country
-        Returns country details for the given country code.
+        Retrieve a specific country with HATEOAS links
+        Returns country details with navigational links to related resources.
+        Includes links to states, continent, and CRUD operations.
         """
         try:
             country = countries_data.get_country_by_code(country_code.upper())
@@ -252,7 +391,9 @@ class Country(Resource):
             )
 
         if country:
-            return country, HTTPStatus.OK
+            # Add HATEOAS links to the response
+            country_with_links = add_country_links(country)
+            return country_with_links, HTTPStatus.OK
         else:
             countries_ns.abort(
                 HTTPStatus.NOT_FOUND,
