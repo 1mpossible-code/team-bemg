@@ -112,6 +112,41 @@ def get_city_by_name_and_state(name: str, state_code: str) -> dict | None:
     return city
 
 
+def get_cities_filtered(
+        name=None,
+        state_code=None,
+        country_code=None,
+        min_pop=None,
+        max_pop=None) -> list:
+    """
+    Returns a list of cities filtered by multiple optional criteria.
+    """
+    query = {}
+
+    # Partial case-insensitive match
+    if name and name.strip():
+        query[CITY_NAME] = {"$regex": name.strip(), "$options": "i"}
+
+    # Exact match for state code
+    if state_code and state_code.strip():
+        query[STATE_CODE] = state_code.upper().strip()
+
+    # Exact match for country code
+    if country_code and country_code.strip():
+        query[COUNTRY_CODE] = country_code.upper().strip()
+
+    # Population
+    if min_pop is not None or max_pop is not None:
+        pop_query = {}
+        if min_pop is not None:
+            pop_query["$gte"] = min_pop
+        if max_pop is not None:
+            pop_query["$lte"] = max_pop
+        query[POPULATION] = pop_query
+
+    return dbc.read_filtered(CITIES_COLLECT, query)
+
+
 def add_city(city_data: dict) -> bool:
     """
     Add a new city to the database
@@ -148,14 +183,18 @@ def add_city(city_data: dict) -> bool:
             city_data[CITY_NAME], city_data[STATE_CODE])
         if existing:
             raise ValueError(
-                f"City '{city_data[CITY_NAME]}' already exists in state '{city_data[STATE_CODE]}'")
+                f"City '{
+                    city_data[CITY_NAME]}' already exists in state '{
+                    city_data[STATE_CODE]}'")
     else:
         # If no state, check by name and country
         existing = get_city_by_name_and_country(
             city_data[CITY_NAME], city_data[COUNTRY_CODE])
         if existing:
             raise ValueError(
-                f"City '{city_data[CITY_NAME]}' already exists in country '{city_data[COUNTRY_CODE]}'")
+                f"City '{
+                    city_data[CITY_NAME]}' already exists in country '{
+                    city_data[COUNTRY_CODE]}'")
 
     if city_data.get(POPULATION, 0) < 0:
         raise ValueError("Population cannot be negative")

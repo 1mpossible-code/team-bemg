@@ -93,6 +93,36 @@ def get_state_by_name(name: str) -> dict | None:
     return dbc.read_one(STATES_COLLECT, {STATE_NAME: name})
 
 
+def get_states_filtered(
+        name=None,
+        country_code=None,
+        min_pop=None,
+        max_pop=None) -> list:
+    """
+    Returns a list of states filtered by multiple optional criteria.
+    """
+    query = {}
+
+    # Partial case-insensitive match
+    if name and name.strip():
+        query[STATE_NAME] = {"$regex": name.strip(), "$options": "i"}
+
+    # Exact match for country code
+    if country_code and country_code.strip():
+        query[COUNTRY_CODE] = country_code.upper().strip()
+
+    # Population
+    if min_pop is not None or max_pop is not None:
+        pop_query = {}
+        if min_pop is not None:
+            pop_query["$gte"] = min_pop
+        if max_pop is not None:
+            pop_query["$lte"] = max_pop
+        query[POPULATION] = pop_query
+
+    return dbc.read_filtered(STATES_COLLECT, query)
+
+
 def add_state(state_data: dict) -> bool:
     """
     Add a new state to the database

@@ -95,7 +95,9 @@ def get_countries_by_continent(continent: str) -> list:
     return dbc.read_filtered(COUNTRIES_COLLECT, {CONTINENT: continent})
 
 
-def get_countries_by_population_range(min_pop: int = None, max_pop: int = None) -> list:
+def get_countries_by_population_range(
+        min_pop: int = None,
+        max_pop: int = None) -> list:
     """
     Returns a list of all countries filtered by population range
     """
@@ -126,6 +128,36 @@ def search_countries_by_name(name_query: str) -> list:
     return dbc.read_filtered(COUNTRIES_COLLECT, query)
 
 
+def get_countries_filtered(
+        name=None,
+        continent=None,
+        min_pop=None,
+        max_pop=None) -> list:
+    """
+    Returns a list of countries filtered by multiple optional criteria.
+    """
+    query = {}
+
+    # Partial case-insensitive match
+    if name and name.strip():
+        query[COUNTRY_NAME] = {"$regex": name.strip(), "$options": "i"}
+
+    # Exact match
+    if continent and continent.strip():
+        query[CONTINENT] = continent
+
+    # Population
+    if min_pop is not None or max_pop is not None:
+        pop_query = {}
+        if min_pop is not None:
+            pop_query["$gte"] = min_pop
+        if max_pop is not None:
+            pop_query["$lte"] = max_pop
+        query[POPULATION] = pop_query
+
+    return dbc.read_filtered(COUNTRIES_COLLECT, query)
+
+
 def add_country(country_data: dict) -> bool:
     """
     Add a new country to the database
@@ -137,7 +169,8 @@ def add_country(country_data: dict) -> bool:
 
     # Sanitize string fields
     if COUNTRY_NAME in country_data:
-        country_data[COUNTRY_NAME] = sanitize_string(country_data[COUNTRY_NAME])
+        country_data[COUNTRY_NAME] = sanitize_string(
+            country_data[COUNTRY_NAME])
     if COUNTRY_CODE in country_data:
         country_data[COUNTRY_CODE] = sanitize_code(country_data[COUNTRY_CODE])
     if CAPITAL in country_data:
@@ -148,8 +181,8 @@ def add_country(country_data: dict) -> bool:
     # Validate continent
     if country_data[CONTINENT] not in VALID_CONTINENTS:
         raise ValueError(
-            f"Invalid continent: {country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}"
-        )
+            f"Invalid continent: {
+                country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}")
 
     if get_country_by_code(country_data[COUNTRY_CODE]):
         raise ValueError(
