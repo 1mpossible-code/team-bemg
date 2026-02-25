@@ -136,6 +136,12 @@ list_parser.add_argument(
     required=False,
     help='Number of states to skip from the start (>= 0)',
     location='args')
+list_parser.add_argument(
+    'state_name',
+    type=str,
+    required=False,
+    help='Filter by state name',
+    location='args')
 
 
 @states_ns.route('')
@@ -148,42 +154,41 @@ class StatesList(Resource):
     def get(self):
         """
         Retrieve all states, with optional filters
-        Returns a list of all states, optionally filtered by country_code
-        or population range.
+        Returns a list of all states, optionally filtered by state name,
+        country_code, or population range.
         """
         args = list_parser.parse_args()
+        state_name = args.get('state_name')  # Make sure this is in your parser
         country_code = args.get('country_code')
         min_pop = args.get('min_population')
         max_pop = args.get('max_population')
         limit = args.get('limit')
         offset = args.get('offset')
+
         validate_pagination(limit, offset, states_ns.abort)
         validate_range_filters(
             min_pop,
             max_pop,
             'min_population',
             'max_population',
-            states_ns.abort,
-        )
+            states_ns.abort)
 
         try:
-            # Check which filter to apply
-            if country_code:
-                states = states_data.get_states_by_country(
-                    country_code.upper())
-            elif min_pop is not None or max_pop is not None:
-                states = states_data.get_states_by_population_range(
-                    min_pop, max_pop)
-            else:
-                # No filters, get all states
-                states = states_data.get_states()
-
+            # Replaces the if/elif block
+            states = states_data.get_states_filtered(
+                name=state_name,
+                country_code=country_code,
+                min_pop=min_pop,
+                max_pop=max_pop
+            )
             states = apply_pagination(states, limit, offset)
             return states, HTTPStatus.OK
 
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                f"Database error: {
+                    str(e)}")
 
     @states_ns.doc('create_state')
     @states_ns.expect(state_create_model)

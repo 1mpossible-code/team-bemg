@@ -27,7 +27,7 @@ class TestCitiesEndpoints:
 
     def test_get_all_cities_success(self, client):
         """GET /cities should return 200 and a list of cities."""
-        with patch('data.cities.get_cities') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             mock_get.return_value = [cities_data.TEST_CITY]
 
             resp = client.get('/cities')
@@ -41,7 +41,7 @@ class TestCitiesEndpoints:
     def test_get_cities_with_pagination(self, client):
         """GET /cities supports limit/offset query params."""
         another_city = {**cities_data.TEST_CITY, 'city_name': 'Another'}
-        with patch('data.cities.get_cities') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             mock_get.return_value = [cities_data.TEST_CITY, another_city]
 
             resp = client.get('/cities?limit=1&offset=1')
@@ -57,14 +57,14 @@ class TestCitiesEndpoints:
 
     def test_get_cities_invalid_population_range(self, client):
         """Invalid min/max population should short-circuit with 400."""
-        with patch('data.cities.get_cities_by_population_range') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             resp = client.get('/cities?min_population=100&max_population=10')
             assert resp.status_code == HTTPStatus.BAD_REQUEST
             mock_get.assert_not_called()
 
     def test_get_cities_negative_population_filter(self, client):
         """Negative population filters should be rejected."""
-        with patch('data.cities.get_cities_by_population_range') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             resp = client.get('/cities?min_population=-5')
             assert resp.status_code == HTTPStatus.BAD_REQUEST
             mock_get.assert_not_called()
@@ -150,43 +150,39 @@ class TestCitiesEndpoints:
 
     def test_get_cities_filter_by_name(self, client, sample_city):
         """Test GET /cities?name=New"""
-        with patch('data.cities.get_cities_by_name') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             mock_get.return_value = [sample_city]
-
-            # Search for "New" (should match "New York")
             response = client.get('/cities?name=New')
-
             assert response.status_code == HTTPStatus.OK
-            mock_get.assert_called_with('New')
+            mock_get.assert_called_with(name='New', state_code=None, country_code=None, min_pop=None, max_pop=None)
 
     def test_get_cities_filter_by_state(self, client, sample_city):
         """Test GET /cities?state_code=NY"""
-        with patch('data.cities.get_cities_by_state') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             mock_get.return_value = [sample_city]
             response = client.get('/cities?state_code=NY')
             assert response.status_code == HTTPStatus.OK
-            mock_get.assert_called_with('NY')
+            mock_get.assert_called_with(name=None, state_code='NY', country_code=None, min_pop=None, max_pop=None)
 
     def test_get_cities_filter_by_population(self, client, sample_city):
         """Test GET /cities?min_population=1000"""
-        with patch('data.cities.get_cities_by_population_range') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             mock_get.return_value = [sample_city]
             response = client.get('/cities?min_population=1000')
             assert response.status_code == HTTPStatus.OK
-            mock_get.assert_called_with(1000, None)
+            mock_get.assert_called_with(name=None, state_code=None, country_code=None, min_pop=1000, max_pop=None)
 
-    def test_get_cities_filter_by_country_normalizes_uppercase(
-            self, client, sample_city):
+    def test_get_cities_filter_by_country_normalizes_uppercase(self, client, sample_city):
         """GET /cities?country_code=us should uppercase to 'US' in data call."""
-        with patch('data.cities.get_cities_by_country') as mock_get:
+        with patch('data.cities.get_cities_filtered') as mock_get:
             mock_get.return_value = [sample_city]
             resp = client.get('/cities?country_code=us')
             assert resp.status_code == HTTPStatus.OK
-            mock_get.assert_called_once_with('US')
+            mock_get.assert_called_once_with(name=None, state_code=None, country_code='us', min_pop=None, max_pop=None)
 
     def test_get_cities_filter_by_country_db_error(self, client):
         """GET /cities?country_code=US returns 500 on DB error."""
-        with patch('data.cities.get_cities_by_country', side_effect=Exception('boom')):
+        with patch('data.cities.get_cities_filtered', side_effect=Exception('boom')):
             resp = client.get('/cities?country_code=US')
             assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 

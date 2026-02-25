@@ -266,6 +266,26 @@ list_parser.add_argument(
     help="Number of countries to skip from the start (>= 0)",
     location="args",
 )
+list_parser.add_argument(
+    "country_name",
+    type=str,
+    required=False,
+    location="args")
+list_parser.add_argument(
+    "continent",
+    type=str,
+    required=False,
+    location="args")
+list_parser.add_argument(
+    "min_population",
+    type=int,
+    required=False,
+    location="args")
+list_parser.add_argument(
+    "max_population",
+    type=int,
+    required=False,
+    location="args")
 
 
 @countries_ns.route("")
@@ -277,21 +297,33 @@ class CountriesList(Resource):
     @countries_ns.marshal_list_with(country_model)
     def get(self):
         """
-        Retrieve all countries with optional pagination.
+        Retrieve all countries with optional filtering and pagination.
         """
         args = list_parser.parse_args()
         limit = args.get("limit")
         offset = args.get("offset")
+
+        name = args.get("country_name")
+        continent = args.get("continent")
+        min_pop = args.get("min_population")
+        max_pop = args.get("max_population")
+
         validate_pagination(limit, offset, countries_ns.abort)
 
         try:
-            data = countries_data.get_countries()
+            data = countries_data.get_countries_filtered(
+                name=name,
+                continent=continent,
+                min_pop=min_pop,
+                max_pop=max_pop
+            )
             data = apply_pagination(data, limit, offset)
             return data, HTTPStatus.OK
         except Exception as e:
             countries_ns.abort(
-                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
-            )
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                f"Database error: {
+                    str(e)}")
 
     @countries_ns.doc("create_country")
     @countries_ns.expect(country_create_model)

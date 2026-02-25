@@ -154,17 +154,14 @@ class CitiesList(Resource):
         )
 
         try:
-            if name_query:
-                data = cities_data.get_cities_by_name(name_query)
-            elif country_code:
-                data = cities_data.get_cities_by_country(country_code.upper())
-            elif state_code:
-                data = cities_data.get_cities_by_state(state_code.upper())
-            elif min_pop is not None or max_pop is not None:
-                data = cities_data.get_cities_by_population_range(
-                    min_pop, max_pop)
-            else:
-                data = cities_data.get_cities()
+            # Replaces the if/elif block
+            data = cities_data.get_cities_filtered(
+                name=name_query,
+                state_code=state_code,
+                country_code=country_code,
+                min_pop=min_pop,
+                max_pop=max_pop
+            )
 
             data = apply_pagination(data, limit, offset)
             return data, HTTPStatus.OK

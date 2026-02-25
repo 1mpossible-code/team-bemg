@@ -9,6 +9,7 @@ from server.app import create_app
 from data import countries
 import data.states as states
 
+
 class TestCountriesEndpoints:
     """Test class for countries API endpoints."""
 
@@ -36,30 +37,32 @@ class TestCountriesEndpoints:
         """Test successful retrieval of states in a country."""
         # Arrange
         with patch('data.countries.get_country_by_code') as mock_get_country, \
-             patch('data.states.get_states_by_country') as mock_get:
+                patch('data.states.get_states_by_country') as mock_get:
             mock_get_country.return_value = countries.TEST_COUNTRY
             mock_get.return_value = [states.TEST_STATE]
 
             # Act
-            response = client.get(f'/countries/{countries.TEST_COUNTRY[countries.COUNTRY_CODE]}/states')
+            response = client.get(
+                f'/countries/{countries.TEST_COUNTRY[countries.COUNTRY_CODE]}/states')
 
             # Assert
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
-            # API now exposes created_at/updated_at (may be None); assert core fields match
+            # API now exposes created_at/updated_at (may be None); assert core
+            # fields match
             assert isinstance(data, list) and len(data) == 1
             assert data[0]['state_code'] == states.TEST_STATE['state_code']
             assert 'created_at' in data[0] and 'updated_at' in data[0]
-            mock_get_country.assert_called_once_with(countries.TEST_COUNTRY[countries.COUNTRY_CODE])
-            mock_get.assert_called_once_with(countries.TEST_COUNTRY[countries.COUNTRY_CODE])
+            mock_get_country.assert_called_once_with(
+                countries.TEST_COUNTRY[countries.COUNTRY_CODE])
+            mock_get.assert_called_once_with(
+                countries.TEST_COUNTRY[countries.COUNTRY_CODE])
 
     def test_get_all_countries_success(self, client):
         """Test successful retrieval of all countries."""
-        with patch('data.countries.get_countries') as mock_get:
+        with patch('data.countries.get_countries_filtered') as mock_get:
             mock_get.return_value = [countries.TEST_COUNTRY]
-            
             response = client.get('/countries')
-            
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
             assert isinstance(data, list)
@@ -67,12 +70,12 @@ class TestCountriesEndpoints:
 
     def test_get_all_countries_with_pagination(self, client):
         """GET /countries supports limit and offset query parameters."""
-        second_country = {**countries.TEST_COUNTRY, countries.COUNTRY_CODE: 'ZZ'}
-        with patch('data.countries.get_countries') as mock_get:
+        second_country = {
+            **countries.TEST_COUNTRY,
+            countries.COUNTRY_CODE: 'ZZ'}
+        with patch('data.countries.get_countries_filtered') as mock_get:
             mock_get.return_value = [countries.TEST_COUNTRY, second_country]
-
             response = client.get('/countries?limit=1&offset=1')
-
             assert response.status_code == HTTPStatus.OK
             data = response.get_json()
             assert len(data) == 1
@@ -85,22 +88,20 @@ class TestCountriesEndpoints:
 
     def test_get_all_countries_database_error(self, client):
         """Test database error when retrieving countries."""
-        with patch('data.countries.get_countries') as mock_get:
+        with patch('data.countries.get_countries_filtered') as mock_get:
             mock_get.side_effect = Exception("Database connection failed")
-            
             response = client.get('/countries')
-            
             assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
     def test_create_country_success(self, client, sample_country):
         """Test successful country creation."""
         with patch('data.countries.add_country') as mock_add:
             mock_add.return_value = True
-            
-            response = client.post('/countries', 
-                                 data=json.dumps(sample_country),
-                                 content_type='application/json')
-            
+
+            response = client.post('/countries',
+                                   data=json.dumps(sample_country),
+                                   content_type='application/json')
+
             assert response.status_code == HTTPStatus.CREATED
             data = json.loads(response.data)
             assert data['country_name'] == sample_country['country_name']
@@ -109,31 +110,32 @@ class TestCountriesEndpoints:
     def test_create_country_invalid_continent(self, client, sample_country):
         """Test country creation with invalid continent."""
         sample_country['continent'] = 'Invalid Continent'
-        
-        response = client.post('/countries', 
-                             data=json.dumps(sample_country),
-                             content_type='application/json')
-        
+
+        response = client.post('/countries',
+                               data=json.dumps(sample_country),
+                               content_type='application/json')
+
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
     def test_create_country_already_exists(self, client, sample_country):
         """Test creating a country that already exists."""
         with patch('data.countries.add_country') as mock_add:
-            mock_add.side_effect = ValueError("Country with code TC already exists")
-            
-            response = client.post('/countries', 
-                                 data=json.dumps(sample_country),
-                                 content_type='application/json')
-            
+            mock_add.side_effect = ValueError(
+                "Country with code TC already exists")
+
+            response = client.post('/countries',
+                                   data=json.dumps(sample_country),
+                                   content_type='application/json')
+
             assert response.status_code == HTTPStatus.BAD_REQUEST
 
     def test_get_country_by_code_success(self, client):
         """Test successful retrieval of country by code."""
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = countries.TEST_COUNTRY
-            
+
             response = client.get('/countries/US')
-            
+
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
             assert data['country_code'] == 'US'
@@ -143,25 +145,25 @@ class TestCountriesEndpoints:
         """Test retrieval of non-existent country."""
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = None
-            
+
             response = client.get('/countries/XX')
-            
+
             assert response.status_code == HTTPStatus.NOT_FOUND
 
     def test_update_country_success(self, client):
         """Test successful country update."""
         update_data = {'population': 350000000}
         updated_country = {**countries.TEST_COUNTRY, **update_data}
-        
+
         with patch('data.countries.update_country') as mock_update, \
-             patch('data.countries.get_country_by_code') as mock_get:
+                patch('data.countries.get_country_by_code') as mock_get:
             mock_update.return_value = True
             mock_get.return_value = updated_country
-            
-            response = client.put('/countries/US', 
-                                data=json.dumps(update_data),
-                                content_type='application/json')
-            
+
+            response = client.put('/countries/US',
+                                  data=json.dumps(update_data),
+                                  content_type='application/json')
+
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
             assert data['population'] == 350000000
@@ -171,30 +173,30 @@ class TestCountriesEndpoints:
         """Test updating non-existent country."""
         with patch('data.countries.update_country') as mock_update:
             mock_update.return_value = False
-            
-            response = client.put('/countries/XX', 
-                                data=json.dumps({'population': 1000}),
-                                content_type='application/json')
-            
+
+            response = client.put('/countries/XX',
+                                  data=json.dumps({'population': 1000}),
+                                  content_type='application/json')
+
             assert response.status_code == HTTPStatus.NOT_FOUND
 
     def test_update_country_invalid_continent(self, client):
         """Test updating country with invalid continent."""
         update_data = {'continent': 'Invalid Continent'}
-        
-        response = client.put('/countries/US', 
-                            data=json.dumps(update_data),
-                            content_type='application/json')
-        
+
+        response = client.put('/countries/US',
+                              data=json.dumps(update_data),
+                              content_type='application/json')
+
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
     def test_delete_country_success(self, client):
         """Test successful country deletion."""
         with patch('data.countries.delete_country') as mock_delete:
             mock_delete.return_value = True
-            
+
             response = client.delete('/countries/US')
-            
+
             assert response.status_code == HTTPStatus.NO_CONTENT
             mock_delete.assert_called_once_with('US')
 
@@ -202,18 +204,19 @@ class TestCountriesEndpoints:
         """Test deleting non-existent country."""
         with patch('data.countries.delete_country') as mock_delete:
             mock_delete.return_value = False
-            
+
             response = client.delete('/countries/XX')
-            
+
             assert response.status_code == HTTPStatus.NOT_FOUND
 
     def test_delete_country_with_dependent_states(self, client):
         """Test DELETE /countries/{code} returns 409 when states exist."""
         with patch('data.countries.delete_country') as mock_delete:
-            mock_delete.side_effect = ValueError("Cannot delete: 5 state(s) depend on this country")
-            
+            mock_delete.side_effect = ValueError(
+                "Cannot delete: 5 state(s) depend on this country")
+
             response = client.delete('/countries/US')
-            
+
             assert response.status_code == HTTPStatus.CONFLICT
             data = json.loads(response.data)
             assert '5 state' in data['message'].lower()
@@ -222,9 +225,9 @@ class TestCountriesEndpoints:
         """Test successful retrieval of countries by continent."""
         with patch('data.countries.get_countries_by_continent') as mock_get:
             mock_get.return_value = [countries.TEST_COUNTRY]
-            
+
             response = client.get('/countries/continent/North America')
-            
+
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
             assert isinstance(data, list)
@@ -233,18 +236,19 @@ class TestCountriesEndpoints:
     def test_get_countries_by_continent_invalid(self, client):
         """Test retrieval with invalid continent."""
         response = client.get('/countries/continent/Invalid Continent')
-        
+
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
     def test_case_insensitive_country_code(self, client):
         """Test that country codes are handled case-insensitively."""
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = countries.TEST_COUNTRY
-            
+
             response = client.get('/countries/us')  # lowercase
-            
+
             assert response.status_code == HTTPStatus.OK
-            mock_get.assert_called_once_with('US')  # should be converted to uppercase
+            # should be converted to uppercase
+            mock_get.assert_called_once_with('US')
 
     def test_create_country_database_error(self, client, sample_country):
         """POST /countries returns 500 when DB insert raises."""
@@ -276,20 +280,20 @@ class TestCountriesEndpoints:
         """Test that GET /countries/<code> includes HATEOAS navigational links."""
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = countries.TEST_COUNTRY
-            
+
             response = client.get('/countries/US')
-            
+
             assert response.status_code == HTTPStatus.OK
             data = json.loads(response.data)
-            
+
             # Verify _links field exists
             assert '_links' in data
             assert isinstance(data['_links'], list)
             assert len(data['_links']) > 0
-            
+
             # Extract link relations
             link_rels = {link['rel'] for link in data['_links']}
-            
+
             # Verify required HATEOAS links are present
             assert 'self' in link_rels
             assert 'states' in link_rels
@@ -302,13 +306,14 @@ class TestCountriesEndpoints:
         """Test that the self link has correct format."""
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = countries.TEST_COUNTRY
-            
+
             response = client.get('/countries/US')
             data = json.loads(response.data)
-            
+
             # Find the self link
-            self_link = next(link for link in data['_links'] if link['rel'] == 'self')
-            
+            self_link = next(
+                link for link in data['_links'] if link['rel'] == 'self')
+
             # Verify link structure
             assert 'href' in self_link
             assert 'method' in self_link
@@ -319,13 +324,14 @@ class TestCountriesEndpoints:
         """Test that states link points to correct resource."""
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = countries.TEST_COUNTRY
-            
+
             response = client.get('/countries/US')
             data = json.loads(response.data)
-            
+
             # Find the states link
-            states_link = next(link for link in data['_links'] if link['rel'] == 'states')
-            
+            states_link = next(
+                link for link in data['_links'] if link['rel'] == 'states')
+
             assert 'href' in states_link
             assert '/countries/US/states' in states_link['href']
             assert states_link['method'] == 'GET'
@@ -334,18 +340,20 @@ class TestCountriesEndpoints:
         """Test that CRUD operation links are included."""
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = countries.TEST_COUNTRY
-            
+
             response = client.get('/countries/US')
             data = json.loads(response.data)
-            
+
             # Find update and delete links
-            update_link = next(link for link in data['_links'] if link['rel'] == 'update')
-            delete_link = next(link for link in data['_links'] if link['rel'] == 'delete')
-            
+            update_link = next(
+                link for link in data['_links'] if link['rel'] == 'update')
+            delete_link = next(
+                link for link in data['_links'] if link['rel'] == 'delete')
+
             # Verify update link
             assert update_link['method'] == 'PUT'
             assert '/countries/US' in update_link['href']
-            
+
             # Verify delete link
             assert delete_link['method'] == 'DELETE'
             assert '/countries/US' in delete_link['href']
@@ -358,12 +366,13 @@ class TestCountriesEndpoints:
         }
         with patch('data.countries.get_country_by_code') as mock_get:
             mock_get.return_value = test_country
-            
+
             response = client.get('/countries/UK')
             data = json.loads(response.data)
-            
+
             # Find the continent link
-            continent_link = next(link for link in data['_links'] if link['rel'] == 'continent')
-            
+            continent_link = next(
+                link for link in data['_links'] if link['rel'] == 'continent')
+
             assert '/countries/continent/Europe' in continent_link['href']
             assert continent_link['method'] == 'GET'

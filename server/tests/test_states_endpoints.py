@@ -32,7 +32,7 @@ class TestStatesEndpoints:
         }
 
     def test_get_all_states_success(self, client):
-        with patch('data.states.get_states') as mock_get:
+        with patch('data.states.get_states_filtered') as mock_get:
             mock_get.return_value = [states_data.TEST_STATE]
 
             resp = client.get('/states')
@@ -47,7 +47,7 @@ class TestStatesEndpoints:
     def test_get_states_with_pagination(self, client):
         """GET /states respects limit and offset query params."""
         another_state = {**states_data.TEST_STATE, 'state_code': 'CA'}
-        with patch('data.states.get_states') as mock_get:
+        with patch('data.states.get_states_filtered') as mock_get:
             mock_get.return_value = [states_data.TEST_STATE, another_state]
 
             resp = client.get('/states?limit=1&offset=1')
@@ -99,11 +99,12 @@ class TestStatesEndpoints:
             assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
             data = resp.get_json()
             # message may vary; ensure we echoed error context
-            assert 'error' in data.get('message', '').lower() or 'db fail' in str(data)
+            assert 'error' in data.get(
+                'message', '').lower() or 'db fail' in str(data)
 
     def test_create_state_success(self, client, sample_state):
         with patch('data.countries.get_country_by_code') as mock_get_country, \
-             patch('data.states.add_state') as mock_add:
+                patch('data.states.add_state') as mock_add:
             mock_get_country.return_value = {'country_code': 'US'}
             mock_add.return_value = True
 
@@ -148,8 +149,8 @@ class TestStatesEndpoints:
         updated = {**states_data.TEST_STATE, **update_data}
 
         with patch('data.countries.get_country_by_code') as mock_country, \
-             patch('data.states.update_state') as mock_update, \
-             patch('data.states.get_state_by_code') as mock_get:
+                patch('data.states.update_state') as mock_update, \
+                patch('data.states.get_state_by_code') as mock_get:
             mock_country.return_value = {'country_code': 'US'}
             mock_update.return_value = True
             mock_get.return_value = updated
@@ -190,7 +191,8 @@ class TestStatesEndpoints:
 
     def test_delete_state_with_dependent_cities(self, client):
         with patch('data.states.delete_state') as mock_delete:
-            mock_delete.side_effect = ValueError('Cannot delete: 2 city/cities depend on this state')
+            mock_delete.side_effect = ValueError(
+                'Cannot delete: 2 city/cities depend on this state')
 
             resp = client.delete('/states/NY')
 
@@ -237,7 +239,8 @@ class TestStatesEndpoints:
     def test_get_cities_in_state_success(self, client):
         """GET /states/{state_code}/cities returns cities in a state."""
         with patch('data.cities.get_cities_by_state') as mock_get:
-            mock_get.return_value = [{'city_name': 'Albany', 'state_code': 'NY', 'country_code': 'US'}]
+            mock_get.return_value = [
+                {'city_name': 'Albany', 'state_code': 'NY', 'country_code': 'US'}]
 
             resp = client.get('/states/NY/cities')
 
@@ -257,4 +260,5 @@ class TestStatesEndpoints:
 
             assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
             data = resp.get_json()
-            assert 'error' in data.get('message', '').lower() or 'db fail' in str(data)
+            assert 'error' in data.get(
+                'message', '').lower() or 'db fail' in str(data)
