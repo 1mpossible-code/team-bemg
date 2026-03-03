@@ -26,9 +26,7 @@ country_create_model = countries_ns.model(
             required=True, description="Country name", example="United States"
         ),
         "country_code": fields.String(
-            required=True,
-            description="ISO 3166-1 alpha-2 country code",
-            example="US"
+            required=True, description="ISO 3166-1 alpha-2 country code", example="US"
         ),
         "continent": fields.String(
             required=True,
@@ -37,13 +35,9 @@ country_create_model = countries_ns.model(
             example="North America",
         ),
         "capital": fields.String(
-            required=True,
-            description="Capital city",
-            example="Washington D.C."
+            required=True, description="Capital city", example="Washington D.C."
         ),
-        "population": fields.Integer(
-            description="Population count", example=331000000
-        ),
+        "population": fields.Integer(description="Population count", example=331000000),
         "area_km2": fields.Float(
             description="Area in square kilometers", example=9833517.0
         ),
@@ -58,9 +52,7 @@ country_model = countries_ns.model(
             required=True, description="Country name", example="United States"
         ),
         "country_code": fields.String(
-            required=True,
-            description="ISO 3166-1 alpha-2 country code",
-            example="US"
+            required=True, description="ISO 3166-1 alpha-2 country code", example="US"
         ),
         "continent": fields.String(
             required=True,
@@ -69,23 +61,19 @@ country_model = countries_ns.model(
             example="North America",
         ),
         "capital": fields.String(
-            required=True,
-            description="Capital city",
-            example="Washington D.C."
+            required=True, description="Capital city", example="Washington D.C."
         ),
-        "population": fields.Integer(
-            description="Population count", example=331000000
-        ),
+        "population": fields.Integer(description="Population count", example=331000000),
         "area_km2": fields.Float(
             description="Area in square kilometers", example=9833517.0
         ),
         "created_at": fields.DateTime(
-            description='Creation timestamp (read-only, set by server)',
-            example='2025-11-12T12:00:00Z'
+            description="Creation timestamp (read-only, set by server)",
+            example="2025-11-12T12:00:00Z",
         ),
         "updated_at": fields.DateTime(
-            description='Last update timestamp (read-only, set by server)',
-            example='2025-11-12T12:00:00Z'
+            description="Last update timestamp (read-only, set by server)",
+            example="2025-11-12T12:00:00Z",
         ),
     },
 )
@@ -94,14 +82,10 @@ country_update_model = countries_ns.model(
     "CountryUpdate",
     {
         "country_name": fields.String(description="Country name"),
-        "continent": fields.String(
-            description="Continent name", enum=VALID_CONTINENTS
-        ),
+        "continent": fields.String(description="Continent name", enum=VALID_CONTINENTS),
         "capital": fields.String(description="Capital city"),
         "population": fields.Integer(description="Population count"),
-        "area_km2": fields.Float(
-            description="Area in square kilometers"
-        ),
+        "area_km2": fields.Float(description="Area in square kilometers"),
     },
 )
 
@@ -110,19 +94,14 @@ link_model = countries_ns.model(
     "Link",
     {
         "rel": fields.String(
-            required=True,
-            description="Relationship type",
-            example="self"
+            required=True, description="Relationship type", example="self"
         ),
         "href": fields.String(
             required=True,
             description="URL to the related resource",
-            example="/api/countries/US"
+            example="/api/countries/US",
         ),
-        "method": fields.String(
-            description="HTTP method to use",
-            example="GET"
-        ),
+        "method": fields.String(description="HTTP method to use", example="GET"),
     },
 )
 
@@ -134,9 +113,7 @@ country_hateoas_model = countries_ns.model(
             required=True, description="Country name", example="United States"
         ),
         "country_code": fields.String(
-            required=True,
-            description="ISO 3166-1 alpha-2 country code",
-            example="US"
+            required=True, description="ISO 3166-1 alpha-2 country code", example="US"
         ),
         "continent": fields.String(
             required=True,
@@ -145,27 +122,23 @@ country_hateoas_model = countries_ns.model(
             example="North America",
         ),
         "capital": fields.String(
-            required=True,
-            description="Capital city",
-            example="Washington D.C."
+            required=True, description="Capital city", example="Washington D.C."
         ),
-        "population": fields.Integer(
-            description="Population count", example=331000000
-        ),
+        "population": fields.Integer(description="Population count", example=331000000),
         "area_km2": fields.Float(
             description="Area in square kilometers", example=9833517.0
         ),
         "created_at": fields.DateTime(
-            description='Creation timestamp (read-only, set by server)',
-            example='2025-11-12T12:00:00Z'
+            description="Creation timestamp (read-only, set by server)",
+            example="2025-11-12T12:00:00Z",
         ),
         "updated_at": fields.DateTime(
-            description='Last update timestamp (read-only, set by server)',
-            example='2025-11-12T12:00:00Z'
+            description="Last update timestamp (read-only, set by server)",
+            example="2025-11-12T12:00:00Z",
         ),
         "_links": fields.List(
             fields.Nested(link_model),
-            description="HATEOAS navigational links to related resources"
+            description="HATEOAS navigational links to related resources",
         ),
     },
 )
@@ -181,65 +154,59 @@ def add_country_links(country: dict) -> dict:
     - update: Link to update this country
     - delete: Link to delete this country
     """
-    country_code = country.get('country_code', '')
-    continent = country.get('continent', '')
+    country_code = country.get("country_code", "")
+    continent = country.get("continent", "")
 
     links = [
         {
             "rel": "self",
             "href": url_for(
-                'countries_country',
-                country_code=country_code,
-                _external=False
+                "countries_country", country_code=country_code, _external=False
             ),
-            "method": "GET"
+            "method": "GET",
         },
         {
             "rel": "states",
             "href": url_for(
-                'countries_states_in_country',
+                "countries_states_in_country",
                 country_code=country_code,
-                _external=False
+                _external=False,
             ),
-            "method": "GET"
+            "method": "GET",
         },
         {
             "rel": "continent",
             "href": url_for(
-                'countries_countries_by_continent',
+                "countries_countries_by_continent",
                 continent_name=continent,
-                _external=False
+                _external=False,
             ),
-            "method": "GET"
+            "method": "GET",
         },
         {
             "rel": "update",
             "href": url_for(
-                'countries_country',
-                country_code=country_code,
-                _external=False
+                "countries_country", country_code=country_code, _external=False
             ),
-            "method": "PUT"
+            "method": "PUT",
         },
         {
             "rel": "delete",
             "href": url_for(
-                'countries_country',
-                country_code=country_code,
-                _external=False
+                "countries_country", country_code=country_code, _external=False
             ),
-            "method": "DELETE"
+            "method": "DELETE",
         },
         {
             "rel": "all_countries",
-            "href": url_for('countries_countries_list', _external=False),
-            "method": "GET"
+            "href": url_for("countries_countries_list", _external=False),
+            "method": "GET",
         },
     ]
 
     # Create a copy to avoid mutating the original
     enhanced_country = country.copy()
-    enhanced_country['_links'] = links
+    enhanced_country["_links"] = links
     return enhanced_country
 
 
@@ -266,26 +233,10 @@ list_parser.add_argument(
     help="Number of countries to skip from the start (>= 0)",
     location="args",
 )
-list_parser.add_argument(
-    "country_name",
-    type=str,
-    required=False,
-    location="args")
-list_parser.add_argument(
-    "continent",
-    type=str,
-    required=False,
-    location="args")
-list_parser.add_argument(
-    "min_population",
-    type=int,
-    required=False,
-    location="args")
-list_parser.add_argument(
-    "max_population",
-    type=int,
-    required=False,
-    location="args")
+list_parser.add_argument("country_name", type=str, required=False, location="args")
+list_parser.add_argument("continent", type=str, required=False, location="args")
+list_parser.add_argument("min_population", type=int, required=False, location="args")
+list_parser.add_argument("max_population", type=int, required=False, location="args")
 
 
 @countries_ns.route("")
@@ -312,28 +263,20 @@ class CountriesList(Resource):
 
         try:
             data = countries_data.get_countries_filtered(
-                name=name,
-                continent=continent,
-                min_pop=min_pop,
-                max_pop=max_pop
+                name=name, continent=continent, min_pop=min_pop, max_pop=max_pop
             )
             data = apply_pagination(data, limit, offset)
             return data, HTTPStatus.OK
         except Exception as e:
             countries_ns.abort(
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-                f"Database error: {
-                    str(e)}")
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
     @countries_ns.doc("create_country")
     @countries_ns.expect(country_create_model)
     @countries_ns.marshal_with(country_model, code=HTTPStatus.CREATED)
-    @countries_ns.response(
-        HTTPStatus.BAD_REQUEST, "Validation error", error_model
-    )
-    @countries_ns.response(
-        HTTPStatus.CONFLICT, "Country already exists", error_model
-    )
+    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Validation error", error_model)
+    @countries_ns.response(HTTPStatus.CONFLICT, "Country already exists", error_model)
     def post(self):
         """
         Create a new country
@@ -346,7 +289,7 @@ class CountriesList(Resource):
         if country_data.get("continent") not in VALID_CONTINENTS:
             countries_ns.abort(
                 HTTPStatus.BAD_REQUEST,
-                f"Invalid continent. Must be one of: " f"{VALID_CONTINENTS}",
+                f"Invalid continent. Must be one of: {VALID_CONTINENTS}",
             )
 
         try:
@@ -355,8 +298,7 @@ class CountriesList(Resource):
                 return country_data, HTTPStatus.CREATED
             else:
                 countries_ns.abort(
-                    HTTPStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to create country"
+                    HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to create country"
                 )
 
         except ValueError as e:
@@ -395,7 +337,7 @@ class StatesInCountry(Resource):
         else:
             countries_ns.abort(
                 HTTPStatus.NOT_FOUND,
-                f"Country with code '{country_code}' " f"not found",
+                f"Country with code '{country_code}' not found",
             )
 
 
@@ -406,9 +348,7 @@ class Country(Resource):
 
     @countries_ns.doc("get_country")
     @countries_ns.marshal_with(country_hateoas_model)
-    @countries_ns.response(
-        HTTPStatus.NOT_FOUND, "Country not found", error_model
-    )
+    @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
     def get(self, country_code):
         """
         Retrieve a specific country with HATEOAS links
@@ -429,18 +369,14 @@ class Country(Resource):
         else:
             countries_ns.abort(
                 HTTPStatus.NOT_FOUND,
-                f"Country with code '{country_code}' " f"not found",
+                f"Country with code '{country_code}' not found",
             )
 
     @countries_ns.doc("update_country")
     @countries_ns.expect(country_update_model)
     @countries_ns.marshal_with(country_model)
-    @countries_ns.response(
-        HTTPStatus.NOT_FOUND, "Country not found", error_model
-    )
-    @countries_ns.response(
-        HTTPStatus.BAD_REQUEST, "Validation error", error_model
-    )
+    @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
+    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Validation error", error_model)
     def put(self, country_code):
         """
         Update a country
@@ -456,13 +392,11 @@ class Country(Resource):
         ):
             countries_ns.abort(
                 HTTPStatus.BAD_REQUEST,
-                f"Invalid continent. Must be one of: " f"{VALID_CONTINENTS}",
+                f"Invalid continent. Must be one of: {VALID_CONTINENTS}",
             )
 
         try:
-            success = countries_data.update_country(
-                country_code.upper(), update_data
-            )
+            success = countries_data.update_country(country_code.upper(), update_data)
         except Exception as e:
             countries_ns.abort(
                 HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
@@ -476,26 +410,19 @@ class Country(Resource):
                 return updated_country, HTTPStatus.OK
             except Exception as e:
                 countries_ns.abort(
-                    HTTPStatus.INTERNAL_SERVER_ERROR,
-                    f"Database error: {str(e)}"
+                    HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
                 )
         else:
             countries_ns.abort(
                 HTTPStatus.NOT_FOUND,
-                f"Country with code '{country_code}' " f"not found",
+                f"Country with code '{country_code}' not found",
             )
 
     @countries_ns.doc("delete_country")
+    @countries_ns.response(HTTPStatus.NO_CONTENT, "Country deleted successfully")
+    @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
     @countries_ns.response(
-        HTTPStatus.NO_CONTENT, "Country deleted successfully"
-    )
-    @countries_ns.response(
-        HTTPStatus.NOT_FOUND, "Country not found", error_model
-    )
-    @countries_ns.response(
-        HTTPStatus.CONFLICT,
-        "Cannot delete country with dependent states",
-        error_model
+        HTTPStatus.CONFLICT, "Cannot delete country with dependent states", error_model
     )
     def delete(self, country_code):
         """
@@ -516,7 +443,7 @@ class Country(Resource):
         else:
             countries_ns.abort(
                 HTTPStatus.NOT_FOUND,
-                f"Country with code '{country_code}' " f"not found",
+                f"Country with code '{country_code}' not found",
             )
 
 
@@ -527,9 +454,7 @@ class CountriesByContinent(Resource):
 
     @countries_ns.doc("get_countries_by_continent")
     @countries_ns.marshal_list_with(country_model)
-    @countries_ns.response(
-        HTTPStatus.BAD_REQUEST, "Invalid continent", error_model
-    )
+    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Invalid continent", error_model)
     def get(self, continent_name):
         """
         Get countries by continent
@@ -539,7 +464,7 @@ class CountriesByContinent(Resource):
         if continent_name not in VALID_CONTINENTS:
             countries_ns.abort(
                 HTTPStatus.BAD_REQUEST,
-                f"Invalid continent. Must be one of: " f"{VALID_CONTINENTS}",
+                f"Invalid continent. Must be one of: {VALID_CONTINENTS}",
             )
 
         try:
@@ -571,9 +496,7 @@ class CountriesSearch(Resource):
     @countries_ns.doc("search_countries")
     @countries_ns.expect(search_parser)
     @countries_ns.marshal_list_with(country_model)
-    @countries_ns.response(
-        HTTPStatus.BAD_REQUEST, "Invalid search query", error_model
-    )
+    @countries_ns.response(HTTPStatus.BAD_REQUEST, "Invalid search query", error_model)
     def get(self):
         """
         Search countries by name
@@ -588,14 +511,11 @@ class CountriesSearch(Resource):
         if not name_query or not name_query.strip():
             countries_ns.abort(
                 HTTPStatus.BAD_REQUEST,
-                "Search query 'name' parameter is required and cannot be "
-                "empty",
+                "Search query 'name' parameter is required and cannot be empty",
             )
 
         try:
-            search_results = countries_data.search_countries_by_name(
-                name_query
-            )
+            search_results = countries_data.search_countries_by_name(name_query)
             return search_results, HTTPStatus.OK
         except Exception as e:
             countries_ns.abort(

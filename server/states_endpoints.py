@@ -19,136 +19,146 @@ from server.helpers import (
 )
 
 # Create namespace for states endpoints
-states_ns = Namespace('states', description='State operations')
+states_ns = Namespace("states", description="State operations")
 
 # Define models for Swagger documentation and validation
 state_props = states_validator["$jsonSchema"]["properties"]
 
 # Request model for creating states (no timestamps - server-side only)
 state_create_model = states_ns.model(
-    'StateCreate',
+    "StateCreate",
     {
-        'state_name': fields.String(
+        "state_name": fields.String(
+            required=True, description="State name", example="California"
+        ),
+        "state_code": fields.String(
             required=True,
-            description='State name',
-            example='California'),
-        'state_code': fields.String(
+            description="State code (e.g., CA)",
+            example="CA",
+            pattern=state_props["state_code"]["pattern"],
+        ),
+        "country_code": fields.String(
             required=True,
-            description='State code (e.g., CA)',
-            example='CA',
-            pattern=state_props["state_code"]["pattern"]),
-        'country_code': fields.String(
-            required=True,
-            description='Parent country code (ISO 3166-1 alpha-2)',
-            example='US',
-            pattern=state_props["country_code"]["pattern"]),
-        'capital': fields.String(
-            required=True,
-            description='Capital city',
-            example='Sacramento'),
-        'population': fields.Integer(
-            required=True,
-            description='Population count',
-            example=39538223),
-        'area_km2': fields.Float(
-            required=True,
-            description='Area in square kilometers',
-            example=423970.0)})
+            description="Parent country code (ISO 3166-1 alpha-2)",
+            example="US",
+            pattern=state_props["country_code"]["pattern"],
+        ),
+        "capital": fields.String(
+            required=True, description="Capital city", example="Sacramento"
+        ),
+        "population": fields.Integer(
+            required=True, description="Population count", example=39538223
+        ),
+        "area_km2": fields.Float(
+            required=True, description="Area in square kilometers", example=423970.0
+        ),
+    },
+)
 
 # Response model for states (includes read-only timestamps)
 state_model = states_ns.model(
-    'State',
+    "State",
     {
-        'state_name': fields.String(
+        "state_name": fields.String(
+            required=True, description="State name", example="California"
+        ),
+        "state_code": fields.String(
             required=True,
-            description='State name',
-            example='California'),
-        'state_code': fields.String(
+            description="State code (e.g., CA)",
+            example="CA",
+            pattern=state_props["state_code"]["pattern"],
+        ),
+        "country_code": fields.String(
             required=True,
-            description='State code (e.g., CA)',
-            example='CA',
-            pattern=state_props["state_code"]["pattern"]),
-        'country_code': fields.String(
-            required=True,
-            description='Parent country code (ISO 3166-1 alpha-2)',
-            example='US',
-            pattern=state_props["country_code"]["pattern"]),
-        'capital': fields.String(
-            required=True,
-            description='Capital city',
-            example='Sacramento'),
-        'population': fields.Integer(
-            required=True,
-            description='Population count',
-            example=39538223),
-        'area_km2': fields.Float(
-            required=True,
-            description='Area in square kilometers',
-            example=423970.0),
-        'created_at': fields.DateTime(
-            description='Creation timestamp (read-only, set by server)',
-            example='2025-11-12T12:00:00Z'),
-        'updated_at': fields.DateTime(
-            description='Last update timestamp (read-only, set by server)',
-            example='2025-11-12T12:00:00Z')})
+            description="Parent country code (ISO 3166-1 alpha-2)",
+            example="US",
+            pattern=state_props["country_code"]["pattern"],
+        ),
+        "capital": fields.String(
+            required=True, description="Capital city", example="Sacramento"
+        ),
+        "population": fields.Integer(
+            required=True, description="Population count", example=39538223
+        ),
+        "area_km2": fields.Float(
+            required=True, description="Area in square kilometers", example=423970.0
+        ),
+        "created_at": fields.DateTime(
+            description="Creation timestamp (read-only, set by server)",
+            example="2025-11-12T12:00:00Z",
+        ),
+        "updated_at": fields.DateTime(
+            description="Last update timestamp (read-only, set by server)",
+            example="2025-11-12T12:00:00Z",
+        ),
+    },
+)
 
-state_update_model = states_ns.model('StateUpdate', {
-    'state_name': fields.String(description='State name'),
-    'capital': fields.String(description='Capital city'),
-    'population': fields.Integer(description='Population count'),
-    'area_km2': fields.Float(description='Area in square kilometers')
-})
+state_update_model = states_ns.model(
+    "StateUpdate",
+    {
+        "state_name": fields.String(description="State name"),
+        "capital": fields.String(description="Capital city"),
+        "population": fields.Integer(description="Population count"),
+        "area_km2": fields.Float(description="Area in square kilometers"),
+    },
+)
 
-error_model = states_ns.model('Error', {
-    'error': fields.String(description='Error message'),
-    'code': fields.Integer(description='HTTP status code')
-})
+error_model = states_ns.model(
+    "Error",
+    {
+        "error": fields.String(description="Error message"),
+        "code": fields.Integer(description="HTTP status code"),
+    },
+)
 
 # Parser for query parameters on the GET /states endpoint
 list_parser = reqparse.RequestParser()
 list_parser.add_argument(
-    'country_code',
+    "country_code",
     type=str,
     required=False,
-    help='Filter states by country code (ISO 3166-1 alpha-2), e.g., US',
-    location='args')
+    help="Filter states by country code (ISO 3166-1 alpha-2), e.g., US",
+    location="args",
+)
 list_parser.add_argument(
-    'min_population',
+    "min_population",
     type=int,
     required=False,
-    help='Filter states with population >= min_population (e.g., 1000000)',
-    location='args')
+    help="Filter states with population >= min_population (e.g., 1000000)",
+    location="args",
+)
 list_parser.add_argument(
-    'max_population',
+    "max_population",
     type=int,
     required=False,
-    help='Filter states with population <= max_population (e.g., 5000000)',
-    location='args')
+    help="Filter states with population <= max_population (e.g., 5000000)",
+    location="args",
+)
 list_parser.add_argument(
-    'limit',
+    "limit",
     type=int,
     required=False,
-    help='Maximum number of states to return (positive integer)',
-    location='args')
+    help="Maximum number of states to return (positive integer)",
+    location="args",
+)
 list_parser.add_argument(
-    'offset',
+    "offset",
     type=int,
     required=False,
-    help='Number of states to skip from the start (>= 0)',
-    location='args')
+    help="Number of states to skip from the start (>= 0)",
+    location="args",
+)
 list_parser.add_argument(
-    'state_name',
-    type=str,
-    required=False,
-    help='Filter by state name',
-    location='args')
+    "state_name", type=str, required=False, help="Filter by state name", location="args"
+)
 
 
-@states_ns.route('')
+@states_ns.route("")
 class StatesList(Resource):
     """States collection endpoint"""
 
-    @states_ns.doc('list_states')
+    @states_ns.doc("list_states")
     @states_ns.expect(list_parser)
     @states_ns.marshal_list_with(state_model)
     def get(self):
@@ -158,20 +168,17 @@ class StatesList(Resource):
         country_code, or population range.
         """
         args = list_parser.parse_args()
-        state_name = args.get('state_name')  # Make sure this is in your parser
-        country_code = args.get('country_code')
-        min_pop = args.get('min_population')
-        max_pop = args.get('max_population')
-        limit = args.get('limit')
-        offset = args.get('offset')
+        state_name = args.get("state_name")  # Make sure this is in your parser
+        country_code = args.get("country_code")
+        min_pop = args.get("min_population")
+        max_pop = args.get("max_population")
+        limit = args.get("limit")
+        offset = args.get("offset")
 
         validate_pagination(limit, offset, states_ns.abort)
         validate_range_filters(
-            min_pop,
-            max_pop,
-            'min_population',
-            'max_population',
-            states_ns.abort)
+            min_pop, max_pop, "min_population", "max_population", states_ns.abort
+        )
 
         try:
             # Replaces the if/elif block
@@ -179,24 +186,21 @@ class StatesList(Resource):
                 name=state_name,
                 country_code=country_code,
                 min_pop=min_pop,
-                max_pop=max_pop
+                max_pop=max_pop,
             )
             states = apply_pagination(states, limit, offset)
             return states, HTTPStatus.OK
 
         except Exception as e:
             states_ns.abort(
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-                f"Database error: {
-                    str(e)}")
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
-    @states_ns.doc('create_state')
+    @states_ns.doc("create_state")
     @states_ns.expect(state_create_model)
     @states_ns.marshal_with(state_model, code=HTTPStatus.CREATED)
-    @states_ns.response(HTTPStatus.BAD_REQUEST, 'Validation error',
-                        error_model)
-    @states_ns.response(HTTPStatus.CONFLICT, 'State already exists',
-                        error_model)
+    @states_ns.response(HTTPStatus.BAD_REQUEST, "Validation error", error_model)
+    @states_ns.response(HTTPStatus.CONFLICT, "State already exists", error_model)
     def post(self):
         """
         Create a new state
@@ -206,41 +210,45 @@ class StatesList(Resource):
         state_data = request.json
 
         # Validate parent country exists
-        country_code = state_data.get('country_code')
+        country_code = state_data.get("country_code")
         if not country_code:
             states_ns.abort(HTTPStatus.BAD_REQUEST, "country_code is required")
 
         try:
             if not countries_data.get_country_by_code(country_code.upper()):
-                states_ns.abort(HTTPStatus.BAD_REQUEST,
-                                f"Parent country with code '{country_code}' "
-                                f"does not exist")
+                states_ns.abort(
+                    HTTPStatus.BAD_REQUEST,
+                    f"Parent country with code '{country_code}' does not exist",
+                )
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Error validating country: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Error validating country: {str(e)}"
+            )
 
         try:
             success = states_data.add_state(state_data)
             if success:
                 return state_data, HTTPStatus.CREATED
             else:
-                states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                                "Failed to create state")
+                states_ns.abort(
+                    HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to create state"
+                )
         except ValueError as e:
             states_ns.abort(HTTPStatus.BAD_REQUEST, str(e))
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
 
-@states_ns.route('/<string:state_code>')
-@states_ns.param('state_code', 'The state code (e.g., CA, NY)')
+@states_ns.route("/<string:state_code>")
+@states_ns.param("state_code", "The state code (e.g., CA, NY)")
 class State(Resource):
     """Single state endpoint"""
 
-    @states_ns.doc('get_state')
+    @states_ns.doc("get_state")
     @states_ns.marshal_with(state_model)
-    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
+    @states_ns.response(HTTPStatus.NOT_FOUND, "State not found", error_model)
     def get(self, state_code: str):
         """
         Retrieve a specific state by its code.
@@ -248,20 +256,22 @@ class State(Resource):
         try:
             state = states_data.get_state_by_code(state_code.upper())
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
         if state:
             return state, HTTPStatus.OK
         else:
-            states_ns.abort(HTTPStatus.NOT_FOUND,
-                            f"State with code '{state_code}' not found")
+            states_ns.abort(
+                HTTPStatus.NOT_FOUND, f"State with code '{state_code}' not found"
+            )
 
-    @states_ns.doc('update_state')
+    @states_ns.doc("update_state")
     @states_ns.expect(state_update_model)
     @states_ns.marshal_with(state_model)
-    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
-    @states_ns.response(HTTPStatus.BAD_REQUEST, 'Validation err', error_model)
+    @states_ns.response(HTTPStatus.NOT_FOUND, "State not found", error_model)
+    @states_ns.response(HTTPStatus.BAD_REQUEST, "Validation err", error_model)
     def put(self, state_code: str):
         """
         Update a state by its code.
@@ -270,41 +280,50 @@ class State(Resource):
         update_data = request.json or {}
 
         # If country_code provided, ensure it exists
-        if 'country_code' in update_data:
+        if "country_code" in update_data:
             try:
                 if not countries_data.get_country_by_code(
-                        update_data['country_code'].upper()
+                    update_data["country_code"].upper()
                 ):
-                    states_ns.abort(HTTPStatus.BAD_REQUEST,
-                                    ("Provided country_code does not exist: "
-                                     f"{update_data['country_code']}"))
+                    states_ns.abort(
+                        HTTPStatus.BAD_REQUEST,
+                        (
+                            "Provided country_code does not exist: "
+                            f"{update_data['country_code']}"
+                        ),
+                    )
             except Exception as e:
-                states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                                f"Error validating country: {str(e)}")
+                states_ns.abort(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    f"Error validating country: {str(e)}",
+                )
 
         try:
             success = states_data.update_state(state_code.upper(), update_data)
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
         if success:
             try:
                 updated = states_data.get_state_by_code(state_code.upper())
                 return updated, HTTPStatus.OK
             except Exception as e:
-                states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                                f"Database error: {str(e)}")
+                states_ns.abort(
+                    HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+                )
         else:
-            states_ns.abort(HTTPStatus.NOT_FOUND,
-                            f"State with code '{state_code}' not found")
+            states_ns.abort(
+                HTTPStatus.NOT_FOUND, f"State with code '{state_code}' not found"
+            )
 
-    @states_ns.doc('delete_state')
-    @states_ns.response(HTTPStatus.NO_CONTENT, 'State deleted successfully')
-    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
-    @states_ns.response(HTTPStatus.CONFLICT,
-                        'Cannot delete state with dependent cities',
-                        error_model)
+    @states_ns.doc("delete_state")
+    @states_ns.response(HTTPStatus.NO_CONTENT, "State deleted successfully")
+    @states_ns.response(HTTPStatus.NOT_FOUND, "State not found", error_model)
+    @states_ns.response(
+        HTTPStatus.CONFLICT, "Cannot delete state with dependent cities", error_model
+    )
     def delete(self, state_code: str):
         """
         Delete a state by its code. Fails with 409 if dependent cities exist.
@@ -314,22 +333,24 @@ class State(Resource):
         except ValueError as e:
             states_ns.abort(HTTPStatus.CONFLICT, str(e))
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
         if success:
             return "", HTTPStatus.NO_CONTENT
         else:
-            states_ns.abort(HTTPStatus.NOT_FOUND,
-                            f"State with code '{state_code}' not found")
+            states_ns.abort(
+                HTTPStatus.NOT_FOUND, f"State with code '{state_code}' not found"
+            )
 
 
-@states_ns.route('/country/<string:country_code>')
-@states_ns.param('country_code', 'The country code (ISO 3166-1), e.g., US')
+@states_ns.route("/country/<string:country_code>")
+@states_ns.param("country_code", "The country code (ISO 3166-1), e.g., US")
 class StatesByCountry(Resource):
     """List states by country code (convenience endpoint)."""
 
-    @states_ns.doc('get_states_by_country')
+    @states_ns.doc("get_states_by_country")
     @states_ns.marshal_list_with(state_model)
     def get(self, country_code: str):
         """
@@ -337,19 +358,22 @@ class StatesByCountry(Resource):
         Equivalent to GET /states?country_code=<code>.
         """
         try:
-            return (states_data.get_states_by_country(country_code.upper()),
-                    HTTPStatus.OK)
+            return (
+                states_data.get_states_by_country(country_code.upper()),
+                HTTPStatus.OK,
+            )
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
 
-@states_ns.route('/<string:state_code>/cities')
-@states_ns.param('state_code', 'The state code (e.g., CA, NY)')
+@states_ns.route("/<string:state_code>/cities")
+@states_ns.param("state_code", "The state code (e.g., CA, NY)")
 class StateCities(Resource):
     """List cities within a state (convenience endpoint)."""
 
-    @states_ns.doc('get_state_cities')
+    @states_ns.doc("get_state_cities")
     @states_ns.marshal_list_with(city_model)
     def get(self, state_code: str):
         """
@@ -357,21 +381,21 @@ class StateCities(Resource):
         Equivalent to GET /cities?state_code=<code>.
         """
         try:
-            return (cities_data.get_cities_by_state(state_code.upper()),
-                    HTTPStatus.OK)
+            return (cities_data.get_cities_by_state(state_code.upper()), HTTPStatus.OK)
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
 
-@states_ns.route('/name/<string:state_name>')
-@states_ns.param('state_name', 'The state name (e.g., California, New York)')
+@states_ns.route("/name/<string:state_name>")
+@states_ns.param("state_name", "The state name (e.g., California, New York)")
 class StateByName(Resource):
     """Single state by name endpoint"""
 
-    @states_ns.doc('get_state_by_name')
+    @states_ns.doc("get_state_by_name")
     @states_ns.marshal_with(state_model)
-    @states_ns.response(HTTPStatus.NOT_FOUND, 'State not found', error_model)
+    @states_ns.response(HTTPStatus.NOT_FOUND, "State not found", error_model)
     def get(self, state_name: str):
         """
         Retrieve a specific state by its name.
@@ -379,11 +403,13 @@ class StateByName(Resource):
         try:
             state = states_data.get_state_by_name(state_name)
         except Exception as e:
-            states_ns.abort(HTTPStatus.INTERNAL_SERVER_ERROR,
-                            f"Database error: {str(e)}")
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
 
         if state:
             return state, HTTPStatus.OK
         else:
-            states_ns.abort(HTTPStatus.NOT_FOUND,
-                            f"State with name '{state_name}' not found")
+            states_ns.abort(
+                HTTPStatus.NOT_FOUND, f"State with name '{state_name}' not found"
+            )

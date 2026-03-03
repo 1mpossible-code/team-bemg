@@ -95,9 +95,7 @@ def get_countries_by_continent(continent: str) -> list:
     return dbc.read_filtered(COUNTRIES_COLLECT, {CONTINENT: continent})
 
 
-def get_countries_by_population_range(
-        min_pop: int = None,
-        max_pop: int = None) -> list:
+def get_countries_by_population_range(min_pop: int = None, max_pop: int = None) -> list:
     """
     Returns a list of all countries filtered by population range
     """
@@ -129,10 +127,8 @@ def search_countries_by_name(name_query: str) -> list:
 
 
 def get_countries_filtered(
-        name=None,
-        continent=None,
-        min_pop=None,
-        max_pop=None) -> list:
+    name=None, continent=None, min_pop=None, max_pop=None
+) -> list:
     """
     Returns a list of countries filtered by multiple optional criteria.
     """
@@ -169,8 +165,7 @@ def add_country(country_data: dict) -> bool:
 
     # Sanitize string fields
     if COUNTRY_NAME in country_data:
-        country_data[COUNTRY_NAME] = sanitize_string(
-            country_data[COUNTRY_NAME])
+        country_data[COUNTRY_NAME] = sanitize_string(country_data[COUNTRY_NAME])
     if COUNTRY_CODE in country_data:
         country_data[COUNTRY_CODE] = sanitize_code(country_data[COUNTRY_CODE])
     if CAPITAL in country_data:
@@ -181,8 +176,8 @@ def add_country(country_data: dict) -> bool:
     # Validate continent
     if country_data[CONTINENT] not in VALID_CONTINENTS:
         raise ValueError(
-            f"Invalid continent: {
-                country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}")
+            f"Invalid continent: {country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}"
+        )
 
     if get_country_by_code(country_data[COUNTRY_CODE]):
         raise ValueError(
@@ -196,8 +191,8 @@ def add_country(country_data: dict) -> bool:
         raise ValueError("Area cannot be negative")
 
     # Timestamps - strip any user-supplied values and set server-side
-    country_data.pop('created_at', None)
-    country_data.pop('updated_at', None)
+    country_data.pop("created_at", None)
+    country_data.pop("updated_at", None)
     from datetime import UTC
 
     now = datetime.now(UTC)
@@ -233,7 +228,7 @@ def update_country(code: str, update_data: dict) -> bool:
         del update_data[COUNTRY_CODE]
 
     # Set updated_at timestamp - strip user value first
-    update_data.pop('created_at', None)
+    update_data.pop("created_at", None)
     from datetime import datetime as _dt, UTC
 
     update_data["updated_at"] = _dt.now(UTC)
