@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_restx import Api
@@ -36,7 +38,11 @@ def create_app():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    CORS(app)
+    cors_origins = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    CORS(app, resources={r"/*": {"origins": cors_origins}})
     api = Api(
         app,
         title="Geographic Database API",
