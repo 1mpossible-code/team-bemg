@@ -27,10 +27,10 @@ pip install -r requirements.txt
 1. Run the API (from repo root)
 
 ```bash
-python -m flask --app server.app:app run
+python -m flask --app server.app:app run --port 8000
 ```
 
-Visit `http://127.0.0.1:5000/healthz` and Swagger docs at the Flask-RESTX UI
+Visit `http://127.0.0.1:8000/healthz` and Swagger docs at the Flask-RESTX UI
 (root or `/` depending on config).
 
 ### Health and readiness
