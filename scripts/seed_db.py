@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -72,6 +73,12 @@ def seed_collection(json_stem: str, dry_run: bool = False) -> int:
     if dry_run:
         # Just report how many docs would be inserted.
         return len(docs)
+
+    # Add timestamps to each document (consistent with normal creation)
+    now = datetime.now(UTC)
+    for doc in docs:
+        doc["created_at"] = now
+        doc["updated_at"] = now
 
     collection = FILE_TO_COLLECTION[json_stem]
     client = dbc.connect_db()

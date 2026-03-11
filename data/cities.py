@@ -5,7 +5,7 @@ All city-related database operations should go through this module.
 
 import data.db_connect as dbc
 from data.utils import sanitize_string, sanitize_code
-from datetime import datetime
+from datetime import UTC, datetime
 from data.cache import city_by_name_state_cache
 
 CITIES_COLLECT = "cities"
@@ -30,8 +30,8 @@ TEST_CITY = {
     POPULATION: 116000,
     AREA_KM2: 160,
     COORDINATES: {LATITUDE: 39.78, LONGITUDE: -89.64},
-    CREATED_AT: datetime.now(),
-    UPDATED_AT: datetime.now(),
+    CREATED_AT: datetime.now(UTC),
+    UPDATED_AT: datetime.now(UTC),
 }
 
 
@@ -198,7 +198,7 @@ def add_city(city_data: dict) -> bool:
         raise ValueError("Area cannot be negative")
 
     # Timestamps
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     city_data["created_at"] = now
     city_data["updated_at"] = now
 

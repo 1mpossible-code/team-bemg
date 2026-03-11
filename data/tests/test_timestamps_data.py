@@ -53,7 +53,7 @@ class TestCityTimestamps:
         assert isinstance(actual_data['updated_at'], datetime)
 
         # Assert timestamps match frozen time
-        expected_time = datetime(2025, 1, 15, 10, 30, 0)
+        expected_time = datetime(2025, 1, 15, 10, 30, 0, tzinfo=UTC)
         assert actual_data['created_at'] == expected_time
         assert actual_data['updated_at'] == expected_time
 
