@@ -48,7 +48,13 @@ jobs:
 
       - name: Run Python tests.
         run: make all_tests
-        
+
+      - name: Trigger Vercel deployment
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL"
+         
       # - name: Deploy to PythonAnywhere
       #  run: ./deploy.sh
       #  env:
