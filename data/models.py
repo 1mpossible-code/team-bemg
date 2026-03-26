@@ -145,10 +145,28 @@ def ensure_collection(name: str, validator: dict[str, Any]):
         )
 
 
+continents_validator = {
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["continent_name"],
+        "additionalProperties": False,
+        "properties": {
+            "_id": {"bsonType": ["objectId", "string"]},
+            "continent_name": {"enum": [m.value for m in CONTINENT_ENUM]},
+            "created_at": {"bsonType": ["date"], "description": "Creation timestamp"},
+            "updated_at": {"bsonType": ["date"], "description": "Last update timestamp"},
+        },
+    }
+}
+
+ensure_collection("continents", continents_validator)
 ensure_collection("countries", countries_validator)
 ensure_collection("states", states_validator)
 ensure_collection("cities", cities_validator)
 
+db.get_collection("continents").create_index(
+    "continent_name", unique=True, name="uniq_continent_name"
+)
 db.get_collection("countries").create_index(
     "country_code", unique=True, name="uniq_country_code"
 )

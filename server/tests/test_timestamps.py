@@ -100,9 +100,11 @@ def test_add_country_overwrites_client_timestamps(monkeypatch):
             acknowledged = True
         return R()
 
-    # Ensure uniqueness check doesn't fail
-    with patch('data.countries.get_country_by_code') as mock_get:
+    # Ensure uniqueness check and continent existence check don't fail
+    with patch('data.countries.get_country_by_code') as mock_get, \
+         patch('data.continents.get_continent_by_name') as mock_continent:
         mock_get.return_value = None
+        mock_continent.return_value = {"continent_name": "North America"}
         with patch('data.db_connect.create', side_effect=fake_create):
             ok = countries_module.add_country(sample)
             assert ok is True

@@ -28,6 +28,7 @@ from data import db_connect as dbc
 # Backups are expected at data/bkup/<stem>.json for each entry here.
 FILE_TO_COLLECTION = {
     # Geo data used by the main API
+    "continents": "continents",
     "countries": "countries",
     "states": "states",
     "cities": "cities",

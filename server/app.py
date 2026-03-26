@@ -16,11 +16,13 @@ def register_namespaces(api: Api) -> None:
 
     This keeps app creation clean and makes it easy to see what routes exist.
     """
+    from server.continents_endpoints import continents_ns
     from server.countries_endpoints import countries_ns
     from server.endpoints import general_ns
     from server.states_endpoints import states_ns
     from server.cities_endpoints import cities_ns
 
+    api.add_namespace(continents_ns, path="/continents")
     api.add_namespace(countries_ns, path="/countries")
     api.add_namespace(general_ns, path="/")
     api.add_namespace(states_ns, path="/states")
