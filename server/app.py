@@ -1,13 +1,90 @@
+import logging
 import os
+from datetime import datetime, timezone
+from http import HTTPStatus
+from time import monotonic
 
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_restx import Api
-from http import HTTPStatus
 
 from data import db_connect
 
-import logging
+APP_NAME = "Geographic Database API"
+APP_VERSION = "v1"
+APP_DESCRIPTION = "CRUD for countries, states, cities"
+DEFAULT_PORT = 8000
+DEFAULT_CORS_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+APP_START_TIME = monotonic()
+
+
+def get_runtime_version() -> str:
+    return os.getenv("APP_VERSION", APP_VERSION)
+
+
+def get_runtime_environment() -> str:
+    return os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "development"
+
+
+def get_runtime_port() -> int:
+    port_value = os.getenv("PORT", str(DEFAULT_PORT))
+    try:
+        return int(port_value)
+    except ValueError:
+        return DEFAULT_PORT
+
+
+def get_runtime_log_level() -> str:
+    log_level = os.getenv("LOG_LEVEL")
+    if log_level:
+        return log_level.upper()
+    return logging.getLevelName(logging.getLogger().getEffectiveLevel())
+
+
+def get_runtime_cors_origins() -> list[str]:
+    return os.getenv("CORS_ORIGINS", DEFAULT_CORS_ORIGINS).split(",")
+
+
+def get_cache_enabled() -> bool:
+    return os.getenv("CACHE_ENABLED", "true").lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
+def _database_dependency_status() -> str:
+    try:
+        client = db_connect.connect_db()
+        client.admin.command("ping")
+        return "UP"
+    except Exception:
+        return "DOWN"
+
+
+def _health_payload() -> tuple[dict, HTTPStatus]:
+    database_status = _database_dependency_status()
+    cache_status = "UP" if get_cache_enabled() else "DOWN"
+    overall_status = "UP" if database_status == "UP" else "DOWN"
+    status_code = (
+        HTTPStatus.OK if overall_status == "UP" else HTTPStatus.SERVICE_UNAVAILABLE
+    )
+
+    payload = {
+        "status": overall_status,
+        "timestamp": datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
+        "uptime_seconds": int(monotonic() - APP_START_TIME),
+        "version": get_runtime_version(),
+        "dependencies": {
+            "database": database_status,
+            "cache": cache_status,
+        },
+    }
+    return payload, status_code
 
 
 def register_namespaces(api: Api) -> None:
@@ -40,16 +117,13 @@ def create_app():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    cors_origins = os.getenv(
-        "CORS_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
-    ).split(",")
+    cors_origins = get_runtime_cors_origins()
     CORS(app, resources={r"/*": {"origins": cors_origins}})
     api = Api(
         app,
-        title="Geographic Database API",
-        version="1.0.0",
-        description="CRUD for countries, states, cities",
+        title=APP_NAME,
+        version=get_runtime_version(),
+        description=APP_DESCRIPTION,
     )
 
     # Register API namespaces in one place
@@ -58,6 +132,11 @@ def create_app():
     @app.route("/healthz")
     def healthz():
         return {"status": "ok"}, HTTPStatus.OK
+
+    @app.route("/health")
+    def health():
+        payload, status = _health_payload()
+        return payload, status
 
     @app.route("/readyz")
     def readyz():

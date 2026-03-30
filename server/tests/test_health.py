@@ -12,6 +12,45 @@ def test_health():
         assert r.get_json() == {"status": "ok"}
 
 
+def test_structured_health_ok():
+    with patch("server.app.db_connect.connect_db") as mock_connect:
+        mock_client = MagicMock()
+        mock_client.admin.command.return_value = {"ok": 1.0}
+        mock_connect.return_value = mock_client
+
+        app = create_app()
+        with app.test_client() as c:
+            r = c.get("/health")
+
+        payload = r.get_json()
+        assert r.status_code == 200
+        assert payload["status"] == "UP"
+        assert payload["version"] == "v1"
+        assert payload["dependencies"] == {
+            "database": "UP",
+            "cache": "UP",
+        }
+        assert payload["uptime_seconds"] >= 0
+        assert payload["timestamp"].endswith("Z")
+
+
+def test_structured_health_db_failure():
+    with patch("server.app.db_connect.connect_db") as mock_connect:
+        mock_client = MagicMock()
+        mock_client.admin.command.side_effect = Exception("DB down")
+        mock_connect.return_value = mock_client
+
+        app = create_app()
+        with app.test_client() as c:
+            r = c.get("/health")
+
+        payload = r.get_json()
+        assert r.status_code == 503
+        assert payload["status"] == "DOWN"
+        assert payload["dependencies"]["database"] == "DOWN"
+        assert payload["dependencies"]["cache"] == "UP"
+
+
 def test_ready_ok():
     """readyz returns 200 when Mongo ping succeeds."""
     # Patch the DB client before creating the app so the closure captures it
