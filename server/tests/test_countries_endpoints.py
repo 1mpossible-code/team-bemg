@@ -221,6 +221,26 @@ class TestCountriesEndpoints:
             data = json.loads(response.data)
             assert '5 state' in data['message'].lower()
 
+    def test_delete_country_with_cascade_success(self, client):
+        """DELETE /countries/{code}?cascade=true uses cascading delete."""
+        with patch('data.countries.delete_country_cascade') as mock_delete:
+            mock_delete.return_value = True
+
+            response = client.delete('/countries/US?cascade=true')
+
+            assert response.status_code == HTTPStatus.NO_CONTENT
+            mock_delete.assert_called_once_with('US')
+
+    def test_delete_country_with_cascade_not_found(self, client):
+        """DELETE /countries/{code}?cascade=true returns 404 when missing."""
+        with patch('data.countries.delete_country_cascade') as mock_delete:
+            mock_delete.return_value = False
+
+            response = client.delete('/countries/XX?cascade=true')
+
+            assert response.status_code == HTTPStatus.NOT_FOUND
+            mock_delete.assert_called_once_with('XX')
+
     def test_get_countries_by_continent_success(self, client):
         """Test successful retrieval of countries by continent."""
         with patch('data.countries.get_countries_by_continent') as mock_get:

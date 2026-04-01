@@ -426,11 +426,22 @@ class Country(Resource):
     )
     def delete(self, country_code):
         """
-        Delete a country
-        Removes the country from the database if no dependent states exist.
+        Delete a country.
+        By default this fails if dependent states exist.
+        Pass ?cascade=true to remove dependent states and cities first.
         """
+        cascade = request.args.get("cascade", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
         try:
-            success = countries_data.delete_country(country_code.upper())
+            if cascade:
+                success = countries_data.delete_country_cascade(country_code.upper())
+            else:
+                success = countries_data.delete_country(country_code.upper())
         except ValueError as e:
             countries_ns.abort(HTTPStatus.CONFLICT, str(e))
         except Exception as e:

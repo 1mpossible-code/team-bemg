@@ -200,6 +200,24 @@ class TestStatesEndpoints:
             data = resp.get_json()
             assert 'depend' in data['message'].lower()
 
+    def test_delete_state_with_cascade_success(self, client):
+        with patch('data.states.delete_state_cascade') as mock_delete:
+            mock_delete.return_value = True
+
+            resp = client.delete('/states/NY?cascade=true')
+
+            assert resp.status_code == HTTPStatus.NO_CONTENT
+            mock_delete.assert_called_once_with('NY')
+
+    def test_delete_state_with_cascade_not_found(self, client):
+        with patch('data.states.delete_state_cascade') as mock_delete:
+            mock_delete.return_value = False
+
+            resp = client.delete('/states/ZZ?cascade=true')
+
+            assert resp.status_code == HTTPStatus.NOT_FOUND
+            mock_delete.assert_called_once_with('ZZ')
+
     def test_get_state_by_name_success(self, client):
         """Test successful retrieval of state by name."""
         with patch('data.states.get_state_by_name') as mock_get:

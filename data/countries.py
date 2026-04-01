@@ -271,15 +271,26 @@ def can_delete_country(country_code: str) -> tuple[bool, str]:
 
 def delete_country(code: str) -> bool:
     """
-    Delete a country by its code.
-    Cascading: Deletes all states and cities in this country first.
+    Delete a country by its code when no dependent states exist.
     """
-    if not can_delete_country(code)[0]:
-        raise ValueError(can_delete_country(code)[1])
-
-    states.delete_states_by_country(code)
+    can_delete, reason = can_delete_country(code)
+    if not can_delete:
+        raise ValueError(reason)
 
     result = dbc.delete(COUNTRIES_COLLECT, {COUNTRY_CODE: code})
+    if result > 0:
+        country_by_code_cache.invalidate(code.upper())
+        return True
+    return False
+
+
+def delete_country_cascade(code: str) -> bool:
+    """
+    Delete a country and any dependent states/cities.
+    """
+    states.delete_states_by_country(code)
+
+    result = dbc.delete(COUNTRIES_COLLECT, {COUNTRY_CODE: code.upper()})
     if result > 0:
         country_by_code_cache.invalidate(code.upper())
         return True

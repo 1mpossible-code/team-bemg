@@ -220,16 +220,26 @@ def can_delete_state(state_code: str) -> tuple[bool, str]:
 
 def delete_state(code: str) -> bool:
     """
-    Delete a state by its code.
-    Cascading: Deletes all cities in this state first.
+    Delete a state by its code when no dependent cities exist.
     """
     can_delete, reason = can_delete_state(code)
     if not can_delete:
         raise ValueError(reason)
 
+    result = dbc.delete(STATES_COLLECT, {STATE_CODE: code})
+    if result > 0:
+        state_by_code_cache.invalidate(code.upper())
+        return True
+    return False
+
+
+def delete_state_cascade(code: str) -> bool:
+    """
+    Delete a state and any dependent cities.
+    """
     cities.delete_cities_by_state(code)
 
-    result = dbc.delete(STATES_COLLECT, {STATE_CODE: code})
+    result = dbc.delete(STATES_COLLECT, {STATE_CODE: code.upper()})
     if result > 0:
         state_by_code_cache.invalidate(code.upper())
         return True

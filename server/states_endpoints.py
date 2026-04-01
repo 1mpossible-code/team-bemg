@@ -326,10 +326,22 @@ class State(Resource):
     )
     def delete(self, state_code: str):
         """
-        Delete a state by its code. Fails with 409 if dependent cities exist.
+        Delete a state by its code.
+        By default this fails with 409 if dependent cities exist.
+        Pass ?cascade=true to remove dependent cities first.
         """
+        cascade = request.args.get("cascade", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
         try:
-            success = states_data.delete_state(state_code.upper())
+            if cascade:
+                success = states_data.delete_state_cascade(state_code.upper())
+            else:
+                success = states_data.delete_state(state_code.upper())
         except ValueError as e:
             states_ns.abort(HTTPStatus.CONFLICT, str(e))
         except Exception as e:
