@@ -24,6 +24,13 @@ def test_structured_health_ok():
 
         payload = r.get_json()
         assert r.status_code == 200
+        assert set(payload) == {
+            "status",
+            "timestamp",
+            "uptime_seconds",
+            "version",
+            "dependencies",
+        }
         assert payload["status"] == "UP"
         assert payload["version"] == "v1"
         assert payload["dependencies"] == {
@@ -47,8 +54,30 @@ def test_structured_health_db_failure():
         payload = r.get_json()
         assert r.status_code == 503
         assert payload["status"] == "DOWN"
+        assert set(payload["dependencies"]) == {"database", "cache"}
         assert payload["dependencies"]["database"] == "DOWN"
         assert payload["dependencies"]["cache"] == "UP"
+
+
+def test_structured_health_reports_cache_state_when_disabled(monkeypatch):
+    monkeypatch.setenv("CACHE_ENABLED", "false")
+
+    with patch("server.app.db_connect.connect_db") as mock_connect:
+        mock_client = MagicMock()
+        mock_client.admin.command.return_value = {"ok": 1.0}
+        mock_connect.return_value = mock_client
+
+        app = create_app()
+        with app.test_client() as c:
+            r = c.get("/health")
+
+        payload = r.get_json()
+        assert r.status_code == 200
+        assert payload["status"] == "UP"
+        assert payload["dependencies"] == {
+            "database": "UP",
+            "cache": "DOWN",
+        }
 
 
 def test_ready_ok():

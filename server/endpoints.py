@@ -11,6 +11,7 @@ from data.db_connect import CLOUD, LOCAL, SE_DB
 from server.app import (
     APP_NAME,
     get_cache_enabled,
+    get_health_payload,
     get_runtime_environment,
     get_runtime_log_level,
     get_runtime_port,
@@ -18,7 +19,11 @@ from server.app import (
 )
 
 # Create namespace for each resource
-general_ns = Namespace("general", description="General API operations")
+general_ns = Namespace(
+    "general",
+    description="General API operations",
+    path="/",
+)
 countries_ns = Namespace("countries", description="Operations related to countries")
 states_ns = Namespace("states", description="Operations related to states")
 
@@ -140,3 +145,12 @@ class DevConfig(Resource):
         if build_metadata:
             payload["build"] = build_metadata
         return payload, HTTPStatus.OK
+
+
+@general_ns.route("/health")
+class Health(Resource):
+    """Return application and dependency health details."""
+
+    def get(self):
+        payload, status = get_health_payload()
+        return payload, status

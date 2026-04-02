@@ -3,9 +3,10 @@ Data layer operations for continents.
 All continent-related database operations should go through this module.
 """
 
-import data.db_connect as dbc
-from data.countries import VALID_CONTINENTS, get_countries_by_continent
 from datetime import UTC, datetime
+
+import data.db_connect as dbc
+from data.countries import VALID_CONTINENTS
 
 CONTINENTS_COLLECT = "continents"
 CONTINENT_NAME = "continent_name"
@@ -36,9 +37,7 @@ def add_continent(continent_data: dict) -> bool:
         )
 
     if get_continent_by_name(continent_data[CONTINENT_NAME]):
-        raise ValueError(
-            f"Continent '{continent_data[CONTINENT_NAME]}' already exists"
-        )
+        raise ValueError(f"Continent '{continent_data[CONTINENT_NAME]}' already exists")
 
     continent_data.pop("created_at", None)
     continent_data.pop("updated_at", None)
@@ -63,6 +62,8 @@ def update_continent(name: str, update_data: dict) -> bool:
 
 
 def delete_continent(name: str) -> bool:
+    from data.countries import get_countries_by_continent
+
     countries = get_countries_by_continent(name)
     if countries:
         raise ValueError(

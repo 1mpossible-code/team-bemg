@@ -179,12 +179,6 @@ def add_country(country_data: dict) -> bool:
             f"Invalid continent: {country_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}"
         )
 
-    import data.continents as continents
-    if not continents.get_continent_by_name(country_data[CONTINENT]):
-        raise ValueError(
-            f"Continent '{country_data[CONTINENT]}' does not exist. Create it first."
-        )
-
     if get_country_by_code(country_data[COUNTRY_CODE]):
         raise ValueError(
             f"Country with code {country_data[COUNTRY_CODE]} already exists"
@@ -232,11 +226,6 @@ def update_country(code: str, update_data: dict) -> bool:
         if update_data[CONTINENT] not in VALID_CONTINENTS:
             raise ValueError(
                 f"Invalid continent: {update_data[CONTINENT]}. Must be one of {VALID_CONTINENTS}"
-            )
-        import data.continents as continents
-        if not continents.get_continent_by_name(update_data[CONTINENT]):
-            raise ValueError(
-                f"Continent '{update_data[CONTINENT]}' does not exist. Create it first."
             )
 
     if COUNTRY_CODE in update_data:

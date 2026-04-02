@@ -63,9 +63,13 @@ def _database_dependency_status() -> str:
         return "DOWN"
 
 
-def _health_payload() -> tuple[dict, HTTPStatus]:
+def _cache_dependency_status() -> str:
+    return "UP" if get_cache_enabled() else "DOWN"
+
+
+def get_health_payload() -> tuple[dict, HTTPStatus]:
     database_status = _database_dependency_status()
-    cache_status = "UP" if get_cache_enabled() else "DOWN"
+    cache_status = _cache_dependency_status()
     overall_status = "UP" if database_status == "UP" else "DOWN"
     status_code = (
         HTTPStatus.OK if overall_status == "UP" else HTTPStatus.SERVICE_UNAVAILABLE
@@ -101,7 +105,7 @@ def register_namespaces(api: Api) -> None:
 
     api.add_namespace(continents_ns, path="/continents")
     api.add_namespace(countries_ns, path="/countries")
-    api.add_namespace(general_ns, path="/")
+    api.add_namespace(general_ns, path="")
     api.add_namespace(states_ns, path="/states")
     api.add_namespace(cities_ns, path="/cities")
 
@@ -132,11 +136,6 @@ def create_app():
     @app.route("/healthz")
     def healthz():
         return {"status": "ok"}, HTTPStatus.OK
-
-    @app.route("/health")
-    def health():
-        payload, status = _health_payload()
-        return payload, status
 
     @app.route("/readyz")
     def readyz():
