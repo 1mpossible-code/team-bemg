@@ -207,13 +207,37 @@ def get_dependent_cities_count(state_code: str) -> int:
     return len(cities_list)
 
 
+def get_state_delete_impact(state_code: str) -> dict | None:
+    """
+    Return dependency counts for deleting a state.
+    """
+    normalized_code = state_code.upper()
+    state = get_state_by_code(normalized_code)
+    if not state:
+        return None
+
+    cities_count = get_dependent_cities_count(normalized_code)
+    return {
+        STATE_CODE: normalized_code,
+        "exists": True,
+        "cities": cities_count,
+        "direct_dependency_count": cities_count,
+        "total_dependency_count": cities_count,
+        "blocked": cities_count > 0,
+    }
+
+
 def can_delete_state(state_code: str) -> tuple[bool, str]:
     """
     Check if state can be safely deleted.
     Returns (can_delete: bool, reason: str)
     """
-    dependent_count = get_dependent_cities_count(state_code)
-    if dependent_count > 0:
+    delete_impact = get_state_delete_impact(state_code)
+    if delete_impact is None:
+        return True, ""
+
+    dependent_count = delete_impact["cities"]
+    if delete_impact["blocked"]:
         return False, f"Cannot delete: {dependent_count} city/cities depend on this state"
     return True, ""
 

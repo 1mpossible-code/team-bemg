@@ -112,6 +112,38 @@ error_model = states_ns.model(
     },
 )
 
+delete_impact_model = states_ns.model(
+    "StateDeleteImpact",
+    {
+        "state_code": fields.String(
+            required=True, description="State code (e.g., CA, NY)", example="CA"
+        ),
+        "exists": fields.Boolean(
+            required=True,
+            description="Whether the requested state exists",
+            example=True,
+        ),
+        "cities": fields.Integer(
+            required=True, description="Number of directly dependent cities", example=12
+        ),
+        "direct_dependency_count": fields.Integer(
+            required=True,
+            description="Total number of directly dependent records that block a non-cascade delete",
+            example=12,
+        ),
+        "total_dependency_count": fields.Integer(
+            required=True,
+            description="Total number of dependent records affected by cascade delete",
+            example=12,
+        ),
+        "blocked": fields.Boolean(
+            required=True,
+            description="Whether safe delete is blocked by direct dependencies",
+            example=True,
+        ),
+    },
+)
+
 # Parser for query parameters on the GET /states endpoint
 list_parser = reqparse.RequestParser()
 list_parser.add_argument(
@@ -239,6 +271,34 @@ class StatesList(Resource):
             states_ns.abort(
                 HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
             )
+
+
+@states_ns.route("/<string:state_code>/delete-impact")
+@states_ns.param("state_code", "The state code (e.g., CA, NY)")
+class StateDeleteImpact(Resource):
+    """State delete impact endpoint"""
+
+    @states_ns.doc("get_state_delete_impact")
+    @states_ns.marshal_with(delete_impact_model)
+    @states_ns.response(HTTPStatus.NOT_FOUND, "State not found", error_model)
+    def get(self, state_code: str):
+        """
+        Retrieve dependency counts for deleting a state.
+        Returns counts the UI can use before confirming delete.
+        """
+        try:
+            impact = states_data.get_state_delete_impact(state_code.upper())
+        except Exception as e:
+            states_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
+
+        if impact:
+            return impact, HTTPStatus.OK
+
+        states_ns.abort(
+            HTTPStatus.NOT_FOUND, f"State with code '{state_code}' not found"
+        )
 
 
 @states_ns.route("/<string:state_code>")

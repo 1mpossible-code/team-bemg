@@ -282,18 +282,67 @@ class TestStates:
             mock_can_delete.assert_called_once_with("NY")
 
     def test_can_delete_state_with_dependencies(self):
-        """Test can_delete_state returns False when cities exist."""
-        with patch("data.states.get_dependent_cities_count", return_value=5):
+        """Test can_delete_state returns False when delete impact is blocked."""
+        with patch(
+            "data.states.get_state_delete_impact",
+            return_value={
+                S.STATE_CODE: "NY",
+                "exists": True,
+                "cities": 5,
+                "direct_dependency_count": 5,
+                "total_dependency_count": 5,
+                "blocked": True,
+            },
+        ):
             can_delete, reason = S.can_delete_state("NY")
             assert can_delete is False
             assert "5 city" in reason
 
     def test_can_delete_state_no_dependencies(self):
         """Test can_delete_state returns True when no cities exist."""
-        with patch("data.states.get_dependent_cities_count", return_value=0):
+        with patch("data.states.get_dependent_cities_count", return_value=0), patch(
+            "data.states.get_state_by_code", return_value=S.TEST_STATE
+        ):
             can_delete, reason = S.can_delete_state("XX")
             assert can_delete is True
             assert reason == ""
+
+    def test_get_state_delete_impact_zero_dependencies(self):
+        """Delete impact reports zero totals when no dependent cities exist."""
+        with patch("data.states.get_state_by_code", return_value=S.TEST_STATE), patch(
+            "data.states.get_dependent_cities_count", return_value=0
+        ):
+            impact = S.get_state_delete_impact("ny")
+
+            assert impact == {
+                S.STATE_CODE: "NY",
+                "exists": True,
+                "cities": 0,
+                "direct_dependency_count": 0,
+                "total_dependency_count": 0,
+                "blocked": False,
+            }
+
+    def test_get_state_delete_impact_with_dependencies(self):
+        """Delete impact reports dependency counts and blocking when cities exist."""
+        with patch("data.states.get_state_by_code", return_value=S.TEST_STATE), patch(
+            "data.states.get_dependent_cities_count", return_value=3
+        ):
+            impact = S.get_state_delete_impact("ny")
+
+            assert impact == {
+                S.STATE_CODE: "NY",
+                "exists": True,
+                "cities": 3,
+                "direct_dependency_count": 3,
+                "total_dependency_count": 3,
+                "blocked": True,
+            }
+
+    def test_get_state_delete_impact_not_found(self):
+        """Delete impact returns None when the state does not exist."""
+        with patch("data.states.get_state_by_code", return_value=None):
+            assert S.get_state_delete_impact("zz") is None
 
     # ===== Existence check tests =====
 

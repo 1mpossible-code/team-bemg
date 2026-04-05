@@ -241,6 +241,64 @@ class TestCountriesEndpoints:
             assert response.status_code == HTTPStatus.NOT_FOUND
             mock_delete.assert_called_once_with('XX')
 
+    def test_get_country_delete_impact_success(self, client):
+        """GET /countries/{code}/delete-impact returns dependency counts."""
+        impact = {
+            'country_code': 'US',
+            'exists': True,
+            'states': 5,
+            'cities': 120,
+            'direct_dependency_count': 5,
+            'total_dependency_count': 125,
+            'blocked': True,
+        }
+        with patch('data.countries.get_country_delete_impact') as mock_get:
+            mock_get.return_value = impact
+
+            response = client.get('/countries/US/delete-impact')
+
+            assert response.status_code == HTTPStatus.OK
+            assert response.get_json() == impact
+            mock_get.assert_called_once_with('US')
+
+    def test_get_country_delete_impact_zero_dependencies(self, client):
+        """GET /countries/{code}/delete-impact exposes zero-count payloads."""
+        impact = {
+            'country_code': 'US',
+            'exists': True,
+            'states': 0,
+            'cities': 0,
+            'direct_dependency_count': 0,
+            'total_dependency_count': 0,
+            'blocked': False,
+        }
+        with patch('data.countries.get_country_delete_impact', return_value=impact) as mock_get:
+            response = client.get('/countries/US/delete-impact')
+
+            assert response.status_code == HTTPStatus.OK
+            assert response.get_json() == impact
+            mock_get.assert_called_once_with('US')
+
+    def test_get_country_delete_impact_not_found(self, client):
+        """GET /countries/{code}/delete-impact returns 404 when country missing."""
+        with patch('data.countries.get_country_delete_impact') as mock_get:
+            mock_get.return_value = None
+
+            response = client.get('/countries/XX/delete-impact')
+
+            assert response.status_code == HTTPStatus.NOT_FOUND
+            mock_get.assert_called_once_with('XX')
+
+    def test_get_country_delete_impact_database_error(self, client):
+        """GET /countries/{code}/delete-impact returns 500 on data-layer errors."""
+        with patch('data.countries.get_country_delete_impact') as mock_get:
+            mock_get.side_effect = Exception('Database connection failed')
+
+            response = client.get('/countries/US/delete-impact')
+
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+            mock_get.assert_called_once_with('US')
+
     def test_get_countries_by_continent_success(self, client):
         """Test successful retrieval of countries by continent."""
         with patch('data.countries.get_countries_by_continent') as mock_get:

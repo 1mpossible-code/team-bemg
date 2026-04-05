@@ -218,6 +218,62 @@ class TestStatesEndpoints:
             assert resp.status_code == HTTPStatus.NOT_FOUND
             mock_delete.assert_called_once_with('ZZ')
 
+    def test_get_state_delete_impact_success(self, client):
+        """GET /states/{code}/delete-impact returns dependency counts."""
+        impact = {
+            'state_code': 'NY',
+            'exists': True,
+            'cities': 2,
+            'direct_dependency_count': 2,
+            'total_dependency_count': 2,
+            'blocked': True,
+        }
+        with patch('data.states.get_state_delete_impact') as mock_get:
+            mock_get.return_value = impact
+
+            resp = client.get('/states/NY/delete-impact')
+
+            assert resp.status_code == HTTPStatus.OK
+            assert resp.get_json() == impact
+            mock_get.assert_called_once_with('NY')
+
+    def test_get_state_delete_impact_zero_dependencies(self, client):
+        """GET /states/{code}/delete-impact exposes zero-count payloads."""
+        impact = {
+            'state_code': 'NY',
+            'exists': True,
+            'cities': 0,
+            'direct_dependency_count': 0,
+            'total_dependency_count': 0,
+            'blocked': False,
+        }
+        with patch('data.states.get_state_delete_impact', return_value=impact) as mock_get:
+            resp = client.get('/states/NY/delete-impact')
+
+            assert resp.status_code == HTTPStatus.OK
+            assert resp.get_json() == impact
+            mock_get.assert_called_once_with('NY')
+
+    def test_get_state_delete_impact_not_found(self, client):
+        """GET /states/{code}/delete-impact returns 404 when state missing."""
+        with patch('data.states.get_state_delete_impact') as mock_get:
+            mock_get.return_value = None
+
+            resp = client.get('/states/ZZ/delete-impact')
+
+            assert resp.status_code == HTTPStatus.NOT_FOUND
+            mock_get.assert_called_once_with('ZZ')
+
+    def test_get_state_delete_impact_database_error(self, client):
+        """GET /states/{code}/delete-impact returns 500 on data-layer errors."""
+        with patch('data.states.get_state_delete_impact') as mock_get:
+            mock_get.side_effect = Exception('Database connection failed')
+
+            resp = client.get('/states/NY/delete-impact')
+
+            assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+            mock_get.assert_called_once_with('NY')
+
     def test_get_state_by_name_success(self, client):
         """Test successful retrieval of state by name."""
         with patch('data.states.get_state_by_name') as mock_get:

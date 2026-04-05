@@ -255,13 +255,51 @@ def get_dependent_states_count(country_code: str) -> int:
     return len(states_list)
 
 
+def get_dependent_cities_count(country_code: str) -> int:
+    """
+    Check how many cities belong to this country.
+    """
+    import data.cities as cities
+
+    cities_list = cities.get_cities_by_country(country_code)
+    return len(cities_list)
+
+
+def get_country_delete_impact(country_code: str) -> dict | None:
+    """
+    Return dependency counts that would be affected by deleting a country.
+    Returns None when the country does not exist.
+    """
+    normalized_code = country_code.upper()
+    country = get_country_by_code(normalized_code)
+    if not country:
+        return None
+
+    states_count = get_dependent_states_count(normalized_code)
+    cities_count = get_dependent_cities_count(normalized_code)
+
+    return {
+        COUNTRY_CODE: normalized_code,
+        "exists": True,
+        "states": states_count,
+        "cities": cities_count,
+        "direct_dependency_count": states_count,
+        "total_dependency_count": states_count + cities_count,
+        "blocked": states_count > 0,
+    }
+
+
 def can_delete_country(country_code: str) -> tuple[bool, str]:
     """
     Check if country can be safely deleted.
     Returns (can_delete: bool, reason: str)
     """
-    dependent_count = get_dependent_states_count(country_code)
-    if dependent_count > 0:
+    delete_impact = get_country_delete_impact(country_code)
+    if delete_impact is None:
+        return True, ""
+
+    dependent_count = delete_impact["states"]
+    if delete_impact["blocked"]:
         return (
             False,
             f"Cannot delete: {dependent_count} state(s) depend on this country",

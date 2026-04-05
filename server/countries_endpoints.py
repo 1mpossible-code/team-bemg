@@ -218,6 +218,41 @@ error_model = countries_ns.model(
     },
 )
 
+delete_impact_model = countries_ns.model(
+    "CountryDeleteImpact",
+    {
+        "country_code": fields.String(
+            required=True, description="ISO 3166-1 alpha-2 country code", example="US"
+        ),
+        "exists": fields.Boolean(
+            required=True,
+            description="Whether the requested country exists",
+            example=True,
+        ),
+        "states": fields.Integer(
+            required=True, description="Number of directly dependent states", example=5
+        ),
+        "cities": fields.Integer(
+            required=True, description="Number of cascade-affected cities", example=120
+        ),
+        "direct_dependency_count": fields.Integer(
+            required=True,
+            description="Total number of directly dependent records that block a non-cascade delete",
+            example=5,
+        ),
+        "total_dependency_count": fields.Integer(
+            required=True,
+            description="Total number of dependent records affected by cascade delete",
+            example=125,
+        ),
+        "blocked": fields.Boolean(
+            required=True,
+            description="Whether safe delete is blocked by direct dependencies",
+            example=True,
+        ),
+    },
+)
+
 list_parser = reqparse.RequestParser()
 list_parser.add_argument(
     "limit",
@@ -339,6 +374,35 @@ class StatesInCountry(Resource):
                 HTTPStatus.NOT_FOUND,
                 f"Country with code '{country_code}' not found",
             )
+
+
+@countries_ns.route("/<string:country_code>/delete-impact")
+@countries_ns.param("country_code", "The country code (ISO 3166-1 alpha-2)")
+class CountryDeleteImpact(Resource):
+    """Country delete impact endpoint"""
+
+    @countries_ns.doc("get_country_delete_impact")
+    @countries_ns.marshal_with(delete_impact_model)
+    @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
+    def get(self, country_code):
+        """
+        Retrieve dependency counts for deleting a country.
+        Returns counts the UI can use before confirming delete.
+        """
+        try:
+            impact = countries_data.get_country_delete_impact(country_code.upper())
+        except Exception as e:
+            countries_ns.abort(
+                HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
+            )
+
+        if impact:
+            return impact, HTTPStatus.OK
+
+        countries_ns.abort(
+            HTTPStatus.NOT_FOUND,
+            f"Country with code '{country_code}' not found",
+        )
 
 
 @countries_ns.route("/<string:country_code>")
