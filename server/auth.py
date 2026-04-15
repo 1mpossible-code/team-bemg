@@ -49,3 +49,19 @@ def extract_bearer_token(auth_header: str | None) -> str | None:
         return None
     token = auth_header.removeprefix("Bearer ").strip()
     return token or None
+
+
+def authenticate_request(
+    auth_header: str | None,
+    required_role: str | None = None,
+) -> dict[str, Any]:
+    """Validate a bearer token header and optionally enforce a role."""
+    token = extract_bearer_token(auth_header)
+    if token is None:
+        raise PermissionError("Missing or invalid bearer token")
+
+    payload = decode_access_token(token)
+    if required_role and payload.get("role") != required_role:
+        raise PermissionError(f"Role '{required_role}' is required")
+
+    return payload

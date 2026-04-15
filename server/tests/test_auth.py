@@ -3,6 +3,7 @@ from jwt import InvalidTokenError
 from server.auth import (
     ROLE_ADMIN,
     ROLE_USER,
+    authenticate_request,
     create_access_token,
     decode_access_token,
     extract_bearer_token,
@@ -50,3 +51,30 @@ def test_user_role_token_supported():
     token = create_access_token("bob", ROLE_USER, expires_hours=1)
     payload = decode_access_token(token)
     assert payload["role"] == ROLE_USER
+
+
+def test_authenticate_request_accepts_valid_bearer_token():
+    token = create_access_token("alice", ROLE_ADMIN, expires_hours=1)
+
+    payload = authenticate_request(f"Bearer {token}")
+
+    assert payload["sub"] == "alice"
+    assert payload["role"] == ROLE_ADMIN
+
+
+def test_authenticate_request_rejects_missing_bearer_token():
+    try:
+        authenticate_request(None)
+        assert False, "Expected PermissionError"
+    except PermissionError as exc:
+        assert "Missing or invalid bearer token" in str(exc)
+
+
+def test_authenticate_request_enforces_required_role():
+    token = create_access_token("bob", ROLE_USER, expires_hours=1)
+
+    try:
+        authenticate_request(f"Bearer {token}", required_role=ROLE_ADMIN)
+        assert False, "Expected PermissionError"
+    except PermissionError as exc:
+        assert "Role 'admin' is required" in str(exc)
