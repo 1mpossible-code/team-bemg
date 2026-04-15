@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
+from jwt import InvalidTokenError
 
 ROLE_ADMIN = "admin"
 ROLE_USER = "user"
@@ -60,7 +61,10 @@ def authenticate_request(
     if token is None:
         raise PermissionError("Missing or invalid bearer token")
 
-    payload = decode_access_token(token)
+    try:
+        payload = decode_access_token(token)
+    except InvalidTokenError as exc:
+        raise PermissionError("Invalid or expired bearer token") from exc
     if required_role and payload.get("role") != required_role:
         raise PermissionError(f"Role '{required_role}' is required")
 

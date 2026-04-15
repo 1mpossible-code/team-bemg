@@ -78,3 +78,11 @@ def test_authenticate_request_enforces_required_role():
         assert False, "Expected PermissionError"
     except PermissionError as exc:
         assert "Role 'admin' is required" in str(exc)
+
+
+def test_authenticate_request_rejects_invalid_bearer_token():
+    try:
+        authenticate_request("Bearer not-a-token")
+        assert False, "Expected PermissionError"
+    except PermissionError as exc:
+        assert "Invalid or expired bearer token" in str(exc)
