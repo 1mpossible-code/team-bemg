@@ -3,6 +3,7 @@
 import os
 from http import HTTPStatus
 
+from flask import request
 from flask_restx import Resource, Namespace
 
 import data.countries as countries_db
@@ -12,6 +13,7 @@ from server.app import (
     APP_NAME,
     get_cache_enabled,
     get_health_payload,
+    get_recent_logs,
     get_runtime_environment,
     get_runtime_log_level,
     get_runtime_port,
@@ -65,6 +67,12 @@ def _get_safe_database_config() -> dict[str, str | bool]:
         "name": os.getenv("DB_NAME", SE_DB),
         "mode": "cloud" if os.getenv("CLOUD_MONGO", LOCAL) == CLOUD else "local",
     }
+
+
+def _has_dev_logs_access() -> bool:
+    expected_token = os.getenv("DEV_LOGS_TOKEN", "")
+    provided_token = request.headers.get("X-Dev-Token", "")
+    return bool(expected_token) and provided_token == expected_token
 
 
 @general_ns.route("/hello")
@@ -154,3 +162,15 @@ class Health(Resource):
     def get(self):
         payload, status = get_health_payload()
         return payload, status
+
+
+@general_ns.route("/dev/logs")
+class DevLogs(Resource):
+    """Return recent application logs for developers only."""
+
+    def get(self):
+        if not _has_dev_logs_access():
+            return {"message": "forbidden"}, HTTPStatus.FORBIDDEN
+
+        limit = request.args.get("limit", default=100, type=int)
+        return {"logs": get_recent_logs(limit)}, HTTPStatus.OK

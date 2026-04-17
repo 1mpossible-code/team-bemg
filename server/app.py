@@ -1,5 +1,6 @@
 import logging
 import os
+from collections import deque
 from datetime import datetime, timezone
 from http import HTTPStatus
 from time import monotonic
@@ -16,6 +17,24 @@ APP_DESCRIPTION = "CRUD for countries, states, cities"
 DEFAULT_PORT = 8000
 DEFAULT_CORS_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
 APP_START_TIME = monotonic()
+LOG_BUFFER = deque(maxlen=200)
+
+
+class InMemoryLogHandler(logging.Handler):
+    """Keep recent log records available for developer diagnostics."""
+
+    def emit(self, record):
+        LOG_BUFFER.append(
+            {
+                "timestamp": datetime.fromtimestamp(record.created, timezone.utc)
+                .replace(microsecond=0)
+                .isoformat()
+                .replace("+00:00", "Z"),
+                "level": record.levelname,
+                "logger": record.name,
+                "message": record.getMessage(),
+            }
+        )
 
 
 def get_runtime_version() -> str:
@@ -52,6 +71,10 @@ def get_cache_enabled() -> bool:
         "no",
         "off",
     }
+
+
+def get_recent_logs(limit: int = 100) -> list[dict[str, str]]:
+    return list(LOG_BUFFER)[-max(1, min(limit, 200)):]
 
 
 def _database_dependency_status() -> str:
@@ -120,6 +143,9 @@ def create_app():
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    root_logger = logging.getLogger()
+    if not any(isinstance(handler, InMemoryLogHandler) for handler in root_logger.handlers):
+        root_logger.addHandler(InMemoryLogHandler())
 
     cors_origins = get_runtime_cors_origins()
     CORS(app, resources={r"/*": {"origins": cors_origins}})
