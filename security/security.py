@@ -1,5 +1,7 @@
 from functools import wraps
 
+from security.manager import get_protocol, is_permitted as manager_is_permitted, load_legacy_records
+
 # import data.db_connect as dbc
 
 """
@@ -78,6 +80,7 @@ def read() -> dict:
     global security_recs
     # dbc.read()
     security_recs = temp_recs
+    load_legacy_records(security_recs)
     return security_recs
 
 
@@ -100,3 +103,31 @@ def read_feature(feature_name: str) -> dict:
         return security_recs[feature_name]
     else:
         return None
+
+
+@needs_recs
+def read_protocol(feature_name: str):
+    return get_protocol(feature_name)
+
+
+@needs_recs
+def is_permitted(
+    feature_name: str,
+    action: str,
+    user_id: str = '',
+    auth_header: str | None = None,
+    auth_payload: dict | None = None,
+    api_key: str = '',
+    phrase: str = '',
+    code: str | None = None,
+) -> bool:
+    return manager_is_permitted(
+        feature_name,
+        action,
+        user_id=user_id,
+        auth_header=auth_header,
+        auth_payload=auth_payload,
+        api_key=api_key,
+        phrase=phrase,
+        code=code,
+    )
