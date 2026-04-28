@@ -1,15 +1,14 @@
 import os
 from enum import StrEnum
 from typing import Any
-from .db_connect import connect_db
+
 from dotenv import load_dotenv
+
+from .db_connect import connect_db
 
 load_dotenv()
 
 db_name = os.environ.get("DB_NAME", "seDB")
-client = connect_db()
-
-db = client[db_name]
 
 
 class CONTINENT_ENUM(StrEnum):
@@ -125,26 +124,6 @@ cities_validator = {
     }
 }
 
-
-def ensure_collection(name: str, validator: dict[str, Any]):
-    exists = name in db.list_collection_names()
-    if not exists:
-        db.create_collection(
-            name,
-            validator=validator,
-            validationAction="error",
-            validationLevel="strict",
-        )
-    else:
-        db.command(
-            "collMod",
-            name,
-            validator=validator,
-            validationAction="error",
-            validationLevel="strict",
-        )
-
-
 continents_validator = {
     "$jsonSchema": {
         "bsonType": "object",
@@ -159,22 +138,56 @@ continents_validator = {
     }
 }
 
-ensure_collection("continents", continents_validator)
-ensure_collection("countries", countries_validator)
-ensure_collection("states", states_validator)
-ensure_collection("cities", cities_validator)
 
-db.get_collection("continents").create_index(
-    "continent_name", unique=True, name="uniq_continent_name"
-)
-db.get_collection("countries").create_index(
-    "country_code", unique=True, name="uniq_country_code"
-)
-db.get_collection("states").create_index(
-    [("country_code", 1), ("state_code", 1)], unique=True, name="uniq_state_in_country"
-)
-db.get_collection("cities").create_index(
-    [("country_code", 1), ("state_code", 1), ("city_name", 1)],
-    unique=True,
-    name="uniq_city_name_in_state",
-)
+def get_db():
+    client = connect_db()
+    return client[db_name]
+
+
+def ensure_collection(name: str, validator: dict[str, Any], db=None):
+    database = db or get_db()
+    exists = name in database.list_collection_names()
+    if not exists:
+        database.create_collection(
+            name,
+            validator=validator,
+            validationAction="error",
+            validationLevel="strict",
+        )
+    else:
+        database.command(
+            "collMod",
+            name,
+            validator=validator,
+            validationAction="error",
+            validationLevel="strict",
+        )
+
+
+def ensure_indexes(db=None):
+    database = db or get_db()
+    database.get_collection("continents").create_index(
+        "continent_name", unique=True, name="uniq_continent_name"
+    )
+    database.get_collection("countries").create_index(
+        "country_code", unique=True, name="uniq_country_code"
+    )
+    database.get_collection("states").create_index(
+        [("country_code", 1), ("state_code", 1)],
+        unique=True,
+        name="uniq_state_in_country",
+    )
+    database.get_collection("cities").create_index(
+        [("country_code", 1), ("state_code", 1), ("city_name", 1)],
+        unique=True,
+        name="uniq_city_name_in_state",
+    )
+
+
+def initialize_database_schema(db=None):
+    database = db or get_db()
+    ensure_collection("continents", continents_validator, db=database)
+    ensure_collection("countries", countries_validator, db=database)
+    ensure_collection("states", states_validator, db=database)
+    ensure_collection("cities", cities_validator, db=database)
+    ensure_indexes(db=database)

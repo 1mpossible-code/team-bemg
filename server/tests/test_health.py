@@ -12,6 +12,28 @@ def test_health():
         assert r.get_json() == {"status": "ok"}
 
 
+def test_create_app_does_not_initialize_db_schema_by_default(monkeypatch):
+    monkeypatch.delenv("INIT_DB_SCHEMA_ON_STARTUP", raising=False)
+
+    with patch("server.app.register_namespaces"), patch(
+        "data.models.initialize_database_schema"
+    ) as mock_initialize:
+        create_app()
+
+    mock_initialize.assert_not_called()
+
+
+def test_create_app_initializes_db_schema_when_enabled(monkeypatch):
+    monkeypatch.setenv("INIT_DB_SCHEMA_ON_STARTUP", "true")
+
+    with patch("server.app.register_namespaces"), patch(
+        "data.models.initialize_database_schema"
+    ) as mock_initialize:
+        create_app()
+
+    mock_initialize.assert_called_once_with()
+
+
 def test_structured_health_ok():
     with patch("server.app.db_connect.connect_db") as mock_connect:
         mock_client = MagicMock()

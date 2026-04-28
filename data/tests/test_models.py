@@ -4,10 +4,12 @@ from unittest.mock import patch, MagicMock, create_autospec, Mock
 from data import models
 from data.models import (
     CONTINENT_ENUM,
-    countries_validator,
-    states_validator,
     cities_validator,
+    countries_validator,
     ensure_collection,
+    ensure_indexes,
+    initialize_database_schema,
+    states_validator,
 )
 
 
@@ -39,9 +41,9 @@ class TestModels:
     @pytest.fixture(autouse=True)
     def setup_patches(self, mock_client, mock_db, mock_collection):
         """Set up patches for all database-related operations."""
-        with patch("data.models.connect_db", return_value=mock_client), patch(
-            "data.models.db", mock_db
-        ), patch.dict(os.environ, {"DB_NAME": "test_db"}):
+        with patch("data.models.connect_db", return_value=mock_client), patch.dict(
+            os.environ, {"DB_NAME": "test_db"}
+        ):
             mock_client.__getitem__.return_value = mock_db
             mock_db.get_collection.return_value = mock_collection
             yield
@@ -158,57 +160,46 @@ class TestModels:
             validationLevel="strict",
         )
 
-    def test_collections_are_ensured_on_import(self, mock_db):
-        """Test that collections are ensured when module is imported."""
-        # Test the ensure_collection function directly since it's called during import
-        # We can verify the function works correctly with our mocked database
-
-        # Test creating a new collection
+    def test_collections_are_initialized_explicitly(self, mock_db):
+        """Test that schema setup only happens when explicitly requested."""
         mock_db.list_collection_names.return_value = []
-        ensure_collection("test_collection", {"test": "validator"})
-        mock_db.create_collection.assert_called_with(
-            "test_collection",
-            validator={"test": "validator"},
+
+        initialize_database_schema(db=mock_db)
+
+        assert mock_db.create_collection.call_count == 4
+        mock_db.create_collection.assert_any_call(
+            "continents",
+            validator=models.continents_validator,
             validationAction="error",
             validationLevel="strict",
         )
-
-        # Test updating an existing collection
-        mock_db.reset_mock()
-        mock_db.list_collection_names.return_value = ["test_collection"]
-        ensure_collection("test_collection", {"test": "validator"})
-        mock_db.command.assert_called_with(
-            "collMod",
-            "test_collection",
-            validator={"test": "validator"},
+        mock_db.create_collection.assert_any_call(
+            "countries",
+            validator=countries_validator,
             validationAction="error",
             validationLevel="strict",
         )
-
-        # Verify that the validators are properly defined
-        assert countries_validator is not None
-        assert states_validator is not None
-        assert cities_validator is not None
+        mock_db.create_collection.assert_any_call(
+            "states",
+            validator=states_validator,
+            validationAction="error",
+            validationLevel="strict",
+        )
+        mock_db.create_collection.assert_any_call(
+            "cities",
+            validator=cities_validator,
+            validationAction="error",
+            validationLevel="strict",
+        )
 
     def test_database_indexes_creation(self, mock_db, mock_collection):
         """Test that database indexes are created properly."""
-        # Test that get_collection returns a mock collection that can create indexes
         mock_db.get_collection.return_value = mock_collection
 
-        # Test that we can get collections for each expected collection type
-        expected_collections = ["countries", "states", "cities"]
+        ensure_indexes(db=mock_db)
 
-        for collection_name in expected_collections:
-            collection = mock_db.get_collection(collection_name)
-            assert collection is not None
-            # Verify the collection can create indexes
-            collection.create_index("test_field", unique=True, name="test_index")
-            collection.create_index.assert_called_with(
-                "test_field", unique=True, name="test_index"
-            )
-
-        # Verify get_collection was called for each collection
-        assert mock_db.get_collection.call_count >= len(expected_collections)
+        assert mock_db.get_collection.call_count == 4
+        assert mock_collection.create_index.call_count == 4
 
     @pytest.mark.parametrize(
         "validator,expected_required",
@@ -276,6 +267,20 @@ class TestModels:
 
         with pytest.raises(Exception, match="Command error"):
             ensure_collection("test_collection", {"test": "validator"})
+
+    def test_module_import_does_not_touch_database(self, mock_db):
+        """Importing the module should not trigger DB schema setup."""
+        mock_db.reset_mock()
+
+        with patch("data.models.connect_db") as mock_connect:
+            assert countries_validator is not None
+            assert states_validator is not None
+            assert cities_validator is not None
+            mock_connect.assert_not_called()
+
+        mock_db.create_collection.assert_not_called()
+        mock_db.command.assert_not_called()
+        mock_db.get_collection.assert_not_called()
 
     def test_database_name_from_environment(self):
         """Test that database name is read from environment variable."""

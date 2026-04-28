@@ -115,6 +115,24 @@ def get_health_payload() -> tuple[dict, HTTPStatus]:
     return payload, status_code
 
 
+def should_initialize_db_schema_on_startup() -> bool:
+    return os.getenv("INIT_DB_SCHEMA_ON_STARTUP", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def initialize_db_schema_if_enabled() -> None:
+    if not should_initialize_db_schema_on_startup():
+        return
+
+    from data.models import initialize_database_schema
+
+    initialize_database_schema()
+
+
 def register_namespaces(api: Api) -> None:
     """
     Central place to register all Flask-RESTX namespaces.
@@ -158,6 +176,8 @@ def create_app():
         version=get_runtime_version(),
         description=APP_DESCRIPTION,
     )
+
+    initialize_db_schema_if_enabled()
 
     # Register API namespaces in one place
     register_namespaces(api)

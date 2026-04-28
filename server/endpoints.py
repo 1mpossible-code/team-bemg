@@ -9,16 +9,6 @@ from flask_restx import Resource, Namespace
 import data.countries as countries_db
 import data.states as states_db
 from data.db_connect import CLOUD, LOCAL, SE_DB
-from server.app import (
-    APP_NAME,
-    get_cache_enabled,
-    get_health_payload,
-    get_recent_logs,
-    get_runtime_environment,
-    get_runtime_log_level,
-    get_runtime_port,
-    get_runtime_version,
-)
 
 # Create namespace for each resource
 general_ns = Namespace(
@@ -139,6 +129,15 @@ class DevConfig(Resource):
     """Return curated runtime configuration that is safe to expose."""
 
     def get(self):
+        from server.app import (
+            APP_NAME,
+            get_cache_enabled,
+            get_runtime_environment,
+            get_runtime_log_level,
+            get_runtime_port,
+            get_runtime_version,
+        )
+
         payload = {
             "app_name": APP_NAME,
             "environment": get_runtime_environment(),
@@ -160,6 +159,8 @@ class Health(Resource):
     """Return application and dependency health details."""
 
     def get(self):
+        from server.app import get_health_payload
+
         payload, status = get_health_payload()
         return payload, status
 
@@ -169,6 +170,8 @@ class DevLogs(Resource):
     """Return recent application logs for developers only."""
 
     def get(self):
+        from server.app import get_recent_logs
+
         if not _has_dev_logs_access():
             return {"message": "forbidden"}, HTTPStatus.FORBIDDEN
 
