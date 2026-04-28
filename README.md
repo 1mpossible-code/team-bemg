@@ -98,6 +98,45 @@ importing a larger slice of the
 [Countries States Cities Database](https://github.com/dr5hn/countries-states-cities-database/tree/master)),
 see `docs/LocalMongoTesting.md`. For a quick seeding guide, see `docs/Seeding.md`.
 
+## Security
+
+A reusable protocol framework lives in `security/`. Today it gates the
+country write endpoints (`POST`, `PUT`, `DELETE` on `/countries`) on a
+logged-in user with the `admin` role. Read endpoints stay open. Full design,
+the table of feature → action → required checks, and a recipe for adding new
+features are in [`security/security.md`](./security/security.md).
+
+Enforcement is opt-in via env vars so the default `flask run` keeps current
+behavior:
+
+```bash
+# off (default): permission check runs but is never enforced, requests pass through
+unset SECURITY_ENFORCEMENT
+
+# block denied requests with 403
+export SECURITY_ENFORCEMENT=true
+
+# observe-only: log denials at INFO but still let them through (good for rollout)
+export SECURITY_ENFORCEMENT=true
+export SECURITY_AUDIT_ONLY=true
+```
+
+Tokens are HS256 JWTs minted by `server.auth.create_access_token(user_id,
+role)` with allowed roles `admin` and `user`. Override the signing secret
+with `JWT_SECRET` in any non-local environment.
+
+```bash
+# mint an admin token for manual testing
+PYTHONPATH=. python -c "from server.auth import create_access_token; \
+  print(create_access_token('alice', 'admin', 1))"
+
+# use it
+curl -X POST http://localhost:8000/countries \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"country_name":"Test","country_code":"TC","continent":"North America","capital":"Test"}'
+```
+
 ## Common issues
 
 - Module import errors (e.g., `No module named server`): run commands from the
