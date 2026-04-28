@@ -10,6 +10,7 @@ from flask_cors import CORS
 from flask_restx import Api
 
 from data import db_connect
+from security.security import read as load_security_records
 
 APP_NAME = "Geographic Database API"
 APP_VERSION = "v1"
@@ -146,6 +147,8 @@ def create_app():
     root_logger = logging.getLogger()
     if not any(isinstance(handler, InMemoryLogHandler) for handler in root_logger.handlers):
         root_logger.addHandler(InMemoryLogHandler())
+
+    load_security_records()
 
     cors_origins = get_runtime_cors_origins()
     CORS(app, resources={r"/*": {"origins": cors_origins}})

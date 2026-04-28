@@ -1,6 +1,8 @@
 from functools import wraps
 
 from security.manager import get_protocol, is_permitted as manager_is_permitted, load_legacy_records
+from security.models import ALLOWED_ROLES
+from server.auth import ROLE_ADMIN
 
 # import data.db_connect as dbc
 
@@ -61,6 +63,7 @@ LOGIN = 'login'
 
 # Features:
 PEOPLE = 'people'
+COUNTRIES = 'countries'
 
 security_recs = None
 # These will come from the DB soon:
@@ -70,6 +73,26 @@ temp_recs = {
             USER_LIST: ['ejc369@nyu.edu'],
             CHECKS: {
                 LOGIN: True,
+            },
+        },
+    },
+    COUNTRIES: {
+        CREATE: {
+            CHECKS: {
+                LOGIN: True,
+                ALLOWED_ROLES: [ROLE_ADMIN],
+            },
+        },
+        UPDATE: {
+            CHECKS: {
+                LOGIN: True,
+                ALLOWED_ROLES: [ROLE_ADMIN],
+            },
+        },
+        DELETE: {
+            CHECKS: {
+                LOGIN: True,
+                ALLOWED_ROLES: [ROLE_ADMIN],
             },
         },
     },

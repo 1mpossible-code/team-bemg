@@ -10,6 +10,7 @@ from http import HTTPStatus
 import data.countries as countries_data
 import data.states as states_data
 from data.countries import VALID_CONTINENTS
+from security import require_protocol
 from server.states_endpoints import state_model
 from server.helpers import apply_pagination, validate_pagination
 
@@ -307,6 +308,7 @@ class CountriesList(Resource):
                 HTTPStatus.INTERNAL_SERVER_ERROR, f"Database error: {str(e)}"
             )
 
+    @require_protocol("countries", "create")
     @countries_ns.doc("create_country")
     @countries_ns.expect(country_create_model)
     @countries_ns.marshal_with(country_model, code=HTTPStatus.CREATED)
@@ -436,6 +438,7 @@ class Country(Resource):
                 f"Country with code '{country_code}' not found",
             )
 
+    @require_protocol("countries", "update")
     @countries_ns.doc("update_country")
     @countries_ns.expect(country_update_model)
     @countries_ns.marshal_with(country_model)
@@ -482,6 +485,7 @@ class Country(Resource):
                 f"Country with code '{country_code}' not found",
             )
 
+    @require_protocol("countries", "delete")
     @countries_ns.doc("delete_country")
     @countries_ns.response(HTTPStatus.NO_CONTENT, "Country deleted successfully")
     @countries_ns.response(HTTPStatus.NOT_FOUND, "Country not found", error_model)
