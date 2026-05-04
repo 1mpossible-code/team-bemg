@@ -137,3 +137,5 @@ dmypy.json
 .pyre/
 .vercel
 .env*.local
+.ant-colony/
+.DS_STORE
