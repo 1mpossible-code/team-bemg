@@ -4,6 +4,7 @@ All city-related database operations should go through this module.
 """
 
 import data.db_connect as dbc
+from data.coordinates import Coordinates
 from data.utils import sanitize_string, sanitize_code
 from datetime import UTC, datetime
 from data.cache import city_by_name_state_cache
@@ -33,6 +34,10 @@ TEST_CITY = {
     CREATED_AT: datetime.now(UTC),
     UPDATED_AT: datetime.now(UTC),
 }
+
+
+def _validate_coordinates(coordinates: dict) -> dict:
+    return Coordinates.from_dict(coordinates).to_dict()
 
 
 def get_cities() -> list:
@@ -154,6 +159,8 @@ def add_city(city_data: dict) -> bool:
         city_data[STATE_CODE] = sanitize_code(city_data[STATE_CODE])
     if COUNTRY_CODE in city_data:
         city_data[COUNTRY_CODE] = sanitize_code(city_data[COUNTRY_CODE])
+    if COORDINATES in city_data:
+        city_data[COORDINATES] = _validate_coordinates(city_data[COORDINATES])
 
     # Validate that state_code exists if provided
     if STATE_CODE in city_data and city_data[STATE_CODE]:
@@ -221,6 +228,8 @@ def update_city(name: str, state_code: str, update_data: dict) -> bool:
     # Sanitize string fields in update
     if COUNTRY_CODE in update_data:
         update_data[COUNTRY_CODE] = sanitize_code(update_data[COUNTRY_CODE])
+    if COORDINATES in update_data:
+        update_data[COORDINATES] = _validate_coordinates(update_data[COORDINATES])
 
     # Prevent updating the name or state_code fields directly
     if CITY_NAME in update_data:
@@ -255,6 +264,8 @@ def update_city_by_name_and_country(
     # Sanitize string fields in update
     if STATE_CODE in update_data:
         update_data[STATE_CODE] = sanitize_code(update_data[STATE_CODE])
+    if COORDINATES in update_data:
+        update_data[COORDINATES] = _validate_coordinates(update_data[COORDINATES])
 
     # Prevent updating the name or country_code fields directly
     if CITY_NAME in update_data:
