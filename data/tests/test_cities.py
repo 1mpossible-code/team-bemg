@@ -546,3 +546,34 @@ class TestCities:
 
             # Verify sanitization occurred
             assert update_data[cities.COUNTRY_CODE] == 'CA'
+
+    def test_add_city_invalid_coordinates(self, sample_city_with_state):
+        """Test that add_city rejects out-of-range coordinates."""
+        sample_city_with_state[cities.COORDINATES] = {
+            cities.LATITUDE: 91,
+            cities.LONGITUDE: -89.64,
+        }
+
+        with patch('data.db_connect.create') as mock_create, \
+                patch('data.states.state_exists', return_value=True), \
+                patch('data.countries.country_exists', return_value=True):
+            with pytest.raises(ValueError, match="latitude"):
+                cities.add_city(sample_city_with_state)
+
+            mock_create.assert_not_called()
+
+    def test_update_city_invalid_coordinates(self, sample_city_with_state):
+        """Test that update_city rejects out-of-range coordinates."""
+        update_data = {
+            cities.COORDINATES: {
+                cities.LATITUDE: 39.78,
+                cities.LONGITUDE: -181,
+            }
+        }
+
+        with patch('data.cities.get_city_by_name_and_state', return_value=sample_city_with_state), \
+                patch('data.db_connect.update') as mock_update:
+            with pytest.raises(ValueError, match="longitude"):
+                cities.update_city('Springfield', 'IL', update_data)
+
+            mock_update.assert_not_called()
