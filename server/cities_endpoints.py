@@ -128,6 +128,16 @@ error_model = cities_ns.model('Error', {
 })
 
 
+def _get_json_body() -> dict:
+    payload = request.get_json(silent=True)
+    if payload is None or not isinstance(payload, dict):
+        cities_ns.abort(
+            HTTPStatus.BAD_REQUEST,
+            'Request body must be a valid JSON object',
+        )
+    return payload
+
+
 @cities_ns.route('')
 class CitiesList(Resource):
 
@@ -182,7 +192,7 @@ class CitiesList(Resource):
         Creates a new city with the provided data.
         Timestamps are automatically set by the server.
         """
-        city_data = request.json
+        city_data = _get_json_body()
 
         state_code = city_data.get('state_code')
         country_code = city_data.get('country_code')
@@ -304,7 +314,7 @@ class City(Resource):
         Updates the city with the provided data.
         The updated_at timestamp is automatically set by the server.
         """
-        update_data = request.json
+        update_data = _get_json_body()
 
         try:
             success = cities_data.update_city(

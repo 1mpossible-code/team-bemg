@@ -120,6 +120,19 @@ class TestCitiesEndpoints:
 
             assert resp.status_code == HTTPStatus.BAD_REQUEST
 
+    def test_create_city_rejects_invalid_json_body(self, client):
+        with patch('data.states.get_state_by_code') as mock_get_state, \
+                patch('data.cities.add_city') as mock_add_city:
+            resp = client.post(
+                '/cities',
+                data='{"city_name": "Broken"',
+                content_type='application/json'
+            )
+
+            assert resp.status_code == HTTPStatus.BAD_REQUEST
+            mock_get_state.assert_not_called()
+            mock_add_city.assert_not_called()
+
     def test_get_city_by_name_and_state_success(self, client):
         """GET /cities/<state_code>/<city_name> should return 200."""
 
@@ -246,6 +259,17 @@ class TestCitiesEndpoints:
             mock_update.assert_called_once_with(
                 city_name, state_code, update_data
             )
+
+    def test_update_city_rejects_invalid_json_body(self, client):
+        with patch('data.cities.update_city') as mock_update:
+            resp = client.put(
+                '/cities/NY/Gotham',
+                data='{"population": 5000',
+                content_type='application/json'
+            )
+
+            assert resp.status_code == HTTPStatus.BAD_REQUEST
+            mock_update.assert_not_called()
 
     def test_delete_city_success(self, client):
         """DELETE /cities/<state_code>/<city_name> should return 204."""
