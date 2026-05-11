@@ -5,3 +5,4 @@ pymongo
 werkzeug==3.0.6
 python-dotenv==1.1.1
 certifi
+PyJWT==2.9.0

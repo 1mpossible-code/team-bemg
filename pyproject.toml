@@ -1,7 +1,15 @@
 [project]
-name = ""
+name = "min-demo"
 version = "0.1.0"
 dependencies = [
+  "flask==2.3.3",
+  "flask-restx==1.1.0",
+  "flask_cors",
+  "pymongo",
+  "werkzeug==3.0.6",
+  "python-dotenv==1.1.1",
+  "certifi",
+  "PyJWT==2.9.0",
 ]
 requires-python = ">=3.8"
 authors = [
